@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Kardex{% endblock %}
+{% block header_title %}Kardex{% endblock %}
+
+{% block content %}
+<div class="card glass-panel">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="flex: 1;">Movimientos de Inventario</h2>
+        
+        <form id="filterForm" method="GET" style="display: flex; gap: 12px; align-items: center; background: var(--bg-primary); padding: 8px 12px; border-radius: 8px; flex: 3; justify-content: flex-end; flex-wrap: wrap;">
+            <input type="text" name="q" placeholder="Buscar producto..." value="{{ q }}" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); flex-grow: 1; max-width: 250px;">
+            <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" title="Fecha Desde" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+            <input type="date" name="fecha_fin" value="{{ fecha_fin }}" title="Fecha Hasta" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+            <button type="submit" class="btn btn-primary" style="background: var(--accent-color); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Filtrar</button>
+        </form>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Producto</th>
+                    <th>Tipo</th>
+                    <th>Ubicación</th>
+                    <th>Cantidad</th>
+                    <th>Motivo</th>
+                    <th>Stock Final</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in page_obj %}
+                <tr>
+                    <td style="color: var(--text-secondary);">{{ m.fecha|date:"d/m/Y H:i" }}</td>
+                    <td><strong>{{ m.producto.nombre }}</strong></td>
+                    <td>
+                        <span class="stock-badge {% if m.tipo == 'ENTRADA' %}success{% elif m.tipo == 'SALIDA' %}danger{% else %}warning{% endif %}">
+                            {{ m.get_tipo_display }}
+                        </span>
+                    </td>
+                    <td>{{ m.get_ubicacion_display }}</td>
+                    <td>{{ m.cantidad }}</td>
+                    <td style="color: var(--text-secondary); font-size: 0.9em;">{{ m.motivo }}</td>
+                    <td>{{ m.stock_resultante|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty-state">No hay movimientos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; align-items: center;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if fecha_inicio %}&fecha_inicio={{ fecha_inicio }}{% endif %}{% if fecha_fin %}&fecha_fin={{ fecha_fin }}{% endif %}" class="btn" style="padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 6px; text-decoration: none; color: var(--text-primary);">Anterior</a>
+            {% endif %}
+            
+            <span style="padding: 6px 12px; color: var(--text-secondary);">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if fecha_inicio %}&fecha_inicio={{ fecha_inicio }}{% endif %}{% if fecha_fin %}&fecha_fin={{ fecha_fin }}{% endif %}" class="btn" style="padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 6px; text-decoration: none; color: var(--text-primary);">Siguiente</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

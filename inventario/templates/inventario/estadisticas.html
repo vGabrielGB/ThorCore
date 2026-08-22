@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Estadísticas del Negocio{% endblock %}
+{% block header_title %}Estadísticas del Negocio{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+    <div id="filter-tipo" style="display: flex; gap: 8px;">
+        <button data-tipo="todos" class="btn btn-primary" style="border-radius: 20px; padding: 6px 16px;">Global</button>
+        <button data-tipo="mayor" class="btn btn-secondary" style="border-radius: 20px; padding: 6px 16px;">Solo Mayor</button>
+        <button data-tipo="detal" class="btn btn-secondary" style="border-radius: 20px; padding: 6px 16px;">Solo Detal</button>
+    </div>
+    
+    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+        <div id="filter-tiempo" style="display: flex; gap: 8px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 20px;">
+            <button data-tiempo="7dias" class="btn btn-primary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Diario (7d)</button>
+            <button data-tiempo="1mes" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Diario (1m)</button>
+            <button data-tiempo="1ano" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Diario (1a)</button>
+            <button data-tiempo="semanal" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Semanal</button>
+            <button data-tiempo="mensual" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Mensual</button>
+            <button data-tiempo="anual" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Anual</button>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="date" id="start-date" class="form-control" style="padding: 4px 8px; font-size: 0.9em;">
+            <span style="color: var(--text-secondary);">a</span>
+            <input type="date" id="end-date" class="form-control" style="padding: 4px 8px; font-size: 0.9em;">
+            <button id="btn-custom-date" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.9em;">Aplicar Fechas</button>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+    
+    <!-- Columna Izquierda: Lista de Productos -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Lista de Productos</h2>
+        
+        <div class="card glass-panel" style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="color: var(--text-secondary); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin:0;">Productos más vendidos</h3>
+                <select id="top-limit" class="form-control" style="width: 100px; padding: 4px; font-size: 0.9em;">
+                    <option value="5">Top 5</option>
+                    <option value="10">Top 10</option>
+                </select>
+            </div>
+            
+            <div id="lista-productos" style="display: flex; flex-direction: column; gap: 12px; min-height: 250px;">
+                {% for p in top_productos %}
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px;">
+                    <strong style="color: var(--text-primary);">{{ forloop.counter }}. {{ p.nombre }}</strong>
+                    <span style="color: var(--accent-color); font-weight: bold;">{{ p.cantidad|floatformat:0 }} uds</span>
+                </div>
+                {% empty %}
+                <p class="empty-state">No hay datos en el rango de tiempo seleccionado.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Columna Derecha: Gráfico Anillo -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Distribución de Ventas</h2>
+        
+        <div class="card glass-panel" style="padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+            <div style="position: relative; height: 280px; width: 100%; display: flex; justify-content: center;">
+                <canvas id="productosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card glass-panel" style="padding: 24px;">
+    <h2 style="margin-bottom: 24px;">Ventas en el Tiempo (USD)</h2>
+    <div style="position: relative; height: 400px; width: 100%;">
+        <canvas id="ventasChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentTipo = 'todos';
+        let currentTiempo = '7dias';
+        let currentLimit = 5;
+        let startDate = '';
+        let endDate = '';
+        
+        const ctxVentas = document.getElementById('ventasChart').getContext('2d');
+        const ctxProductos = document.getElementById('productosChart').getContext('2d');
+        let chartVentas = null;
+        let chartProductos = null;
+        
+        const COLORS = [
+            '#818cf8', // Indigo 400
+            '#34d399', // Emerald 400
+            '#fbbf24', // Amber 400
+            '#f87171', // Red 400
+            '#a78bfa', // Violet 400
+            '#60a5fa', // Blue 400
+            '#f472b6', // Pink 400
+            '#fb923c', // Orange 400
+            '#2dd4bf', // Teal 400
+            '#94a3b8'  // Slate 400
+        ];
+        
+        function renderCharts(labelsVentas, dataVentas, productos) {
+            // CHART VENTAS EN EL TIEMPO
+            if (chartVentas) {
+                chartVentas.data.labels = labelsVentas;
+                chartVentas.data.datasets[0].data = dataVentas;
+                chartVentas.update();
+            } else {
+                chartVentas = new Chart(ctxVentas, {
+                    type: 'line',
+                    data: {
+                        labels: labelsVentas,
+                        datasets: [{
+                            label: 'Ventas Totales ($ USD)',
+                            data: dataVentas,
+                            borderColor: '#818cf8',
+                            backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#818cf8',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#818cf8',
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 800, easing: 'easeOutQuart' },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#94a3b8' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#fff' } }
+                        }
+                    }
+                });
+            }
+            
+            // CHART PRODUCTOS (DOUGHNUT)
+            const prodLabels = productos.map(p => p.nombre);
+            const prodData = productos.map(p => p.cantidad);
+            
+            if (chartProductos) {
+                chartProductos.data.labels = prodLabels;
+                chartProductos.data.datasets[0].data = prodData;
+                chartProductos.update();
+            } else {
+                chartProductos = new Chart(ctxProductos, {
+                    type: 'doughnut',
+                    data: {
+                        labels: prodLabels,
+                        datasets: [{
+                            data: prodData,
+                            backgroundColor: COLORS,
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#fff',
+                                    padding: 20,
+                                    font: { size: 12 }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initial render (Parse JSON safety)
+        const initialTopProductos = {{ top_productos|safe|default:"[]" }};
+        renderCharts({{ fechas_chart|safe }}, {{ ventas_chart|safe }}, initialTopProductos);
+        
+        // Handle filter clicks - Tipo
+        const btnTipos = document.querySelectorAll('#filter-tipo button');
+        btnTipos.forEach(btn => {
+            btn.addEventListener('click', function() {
+                btnTipos.forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-secondary');
+                });
+                this.classList.remove('btn-secondary');
+                this.classList.add('btn-primary');
+                
+                currentTipo = this.dataset.tipo;
+                fetchStats();
+            });
+        });
+        
+        // Handle filter clicks - Tiempo
+        const btnTiempos = document.querySelectorAll('#filter-tiempo button');
+        btnTiempos.forEach(btn => {
+            btn.addEventListener('click', function() {
+                btnTiempos.forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-secondary');
+                });
+                this.classList.remove('btn-secondary');
+                this.classList.add('btn-primary');
+                
+                currentTiempo = this.dataset.tiempo;
+                fetchStats();
+            });
+        });
+        
+        // Custom dates
+        document.getElementById('btn-custom-date').addEventListener('click', function() {
+            startDate = document.getElementById('start-date').value;
+            endDate = document.getElementById('end-date').value;
+            if (startDate && endDate) {
+                btnTiempos.forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-secondary');
+                });
+                currentTiempo = 'custom';
+                fetchStats();
+            } else {
+                alert("Selecciona ambas fechas.");
+            }
+        });
+        
+        // Top Limit
+        document.getElementById('top-limit').addEventListener('change', function() {
+            currentLimit = this.value;
+            fetchStats();
+        });
+        
+        function updateListHTML(containerId, list, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (!list || list.length === 0) {
+                container.innerHTML = '<p class="empty-state">No hay datos en el rango de tiempo seleccionado.</p>';
+                return;
+            }
+            
+            list.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.style = 'display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px;';
+                
+                const valHTML = `<span style="color: var(--accent-color); font-weight: bold;">${parseFloat(item.cantidad).toFixed(0)} uds</span>`;
+                
+                div.innerHTML = `
+                    <strong style="color: var(--text-primary);">${index + 1}. ${item.nombre}</strong>
+                    ${valHTML}
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function fetchStats() {
+            // Animación visual de cargando
+            document.getElementById('lista-productos').style.opacity = '0.5';
+            
+            let url = `?tipo=${currentTipo}&tiempo=${currentTiempo}&top_limit=${currentLimit}`;
+            if (currentTiempo === 'custom') {
+                url += `&start_date=${startDate}&end_date=${endDate}`;
+            }
+            
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Update chart
+                renderCharts(data.fechas_chart, data.ventas_chart, data.top_productos);
+                
+                // Update Lists
+                updateListHTML('lista-productos', data.top_productos, 'count');
+                
+                // Restore opacity
+                document.getElementById('lista-productos').style.opacity = '1';
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('lista-productos').style.opacity = '1';
+            });
+        }
+    });
+</script>
+{% endblock %}

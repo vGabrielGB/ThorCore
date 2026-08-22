@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cierres Diarios{% endblock %}
+{% block header_title %}Cierres Diarios{% endblock %}
+
+{% block content %}
+<div class="card glass-panel">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Registrar Cierre Diario</h2>
+        <button onclick="openNewCierre()" class="btn btn-primary" style="background: var(--accent-color); color: white; border: none; padding: 10px 16px; border-radius: 6px;">+ Nuevo Cierre</button>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Detalles por Método de Pago</th>
+                    <th>Total (USD)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in page_obj %}
+                <tr>
+                    <td><strong>{{ c.fecha|date:"d M Y" }}</strong></td>
+                    <td>{{ c.usuario.username|default:"Sistema" }}</td>
+                    <td>
+                        <ul style="margin: 0; padding-left: 15px; font-size: 0.9rem;">
+                            {% for d in c.detalles.all %}
+                                <li>{{ d.metodo_pago.nombre }}: ${{ d.monto_usd|floatformat:2 }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td class="text-success" style="font-weight: 600;">${{ c.total_usd|floatformat:2 }}</td>
+                    <td>
+                        {% if c.is_editable %}
+                        <button class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background:transparent; cursor:pointer;" onclick='editCierre("{{ c.fecha|date:"Y-m-d" }}", [
+                            {% for d in c.detalles.all %}
+                                {"metodo_id": "{{ d.metodo_pago.id }}", "monto": "{% if d.monto_original > 0 %}{{ d.monto_original|stringformat:"f" }}{% else %}{{ d.monto_usd|stringformat:"f" }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                            {% endfor %}
+                        ])'>
+                            Editar
+                        </button>
+                        {% else %}
+                        <span style="color: var(--text-secondary); font-size: 0.85em;" title="Excedió el límite de 3 días">No editable</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="empty-state">No hay cierres registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if page_obj %}
+        {% include 'inventario/pagination.html' %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para Nuevo Cierre -->
+<div id="cierreModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card glass-panel" style="width: 100%; max-width: 600px; position: relative;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="cierreModalTitle">Registrar Cierre Diario</h2>
+            <button type="button" onclick="document.getElementById('cierreModal').style.display='none'" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">&times;</button>
+        </div>
+        <div class="card-body">
+            <p style="color: var(--text-secondary); margin-top: -10px; margin-bottom: 20px;">Ingresa el monto para cada método de pago. El sistema calculará el total sumando dólares y convirtiendo bolívares a la tasa del BCV.</p>
+            
+            <form id="cierreForm" onsubmit="submitCierre(event)">
+                {% csrf_token %}
+                
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px;">Fecha del Cierre</label>
+                    <input type="date" id="fechaCierre" class="form-control" required style="width: 100%;">
+                </div>
+
+                <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; max-height: 300px; overflow-y: auto;">
+                    <h3 style="margin-bottom: 16px; font-size: 16px;">Montos por Método de Pago</h3>
+                    
+                    <div id="metodosContainer">
+                        {% for m in metodos_pago %}
+                        <div class="form-group metodo-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <label style="margin: 0; min-width: 150px; font-weight: 500;">
+                                {{ m.nombre }} 
+                                <span style="color: var(--text-secondary); font-size: 0.9em;">({% if m.moneda == 'USD' %}${% else %}Bs{% endif %})</span>
+                            </label>
+                            <input type="number" step="0.01" min="0" class="form-control monto-input" data-id="{{ m.id }}" data-moneda="{{ m.moneda }}" placeholder="0.00" value="0.00" style="width: 200px; text-align: right;" onchange="calcularTotal()">
+                        </div>
+                        {% empty %}
+                        <p class="empty-state text-warning">No hay métodos de pago activos configurados.</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 1.1rem;">Total Calculado:</strong>
+                        <strong class="text-success" style="font-size: 1.3rem;">$<span id="granTotal">0.00</span> USD</strong>
+                    </div>
+                </div>
+                
+                <div id="errorMsg" class="alert alert-danger" style="display:none; margin-bottom: 16px;"></div>
+                
+                <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" onclick="document.getElementById('cierreModal').style.display='none'" class="btn btn-secondary" style="padding: 10px 20px; border-radius: 8px; background: transparent; border: 1px solid var(--text-secondary); color: var(--text-primary);">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="background: var(--success); padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600;">Guardar Cierre</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const TASA_BCV = parseFloat("{{ tasa_bcv.tasa_real|default:'1' }}".replace(',', '.'));
+
+    function openNewCierre() {
+        document.getElementById('cierreModalTitle').innerText = 'Registrar Cierre Diario';
+        document.getElementById('fechaCierre').readOnly = false;
+        
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        let mm = today.getMonth() + 1;
+        let dd = today.getDate();
+        if (dd < 10) dd = '0' + dd;
+        if (mm < 10) mm = '0' + mm;
+        document.getElementById('fechaCierre').value = yyyy + '-' + mm + '-' + dd;
+        
+        document.querySelectorAll('.monto-input').forEach(input => input.value = '0.00');
+        calcularTotal();
+        document.getElementById('cierreModal').style.display = 'flex';
+    }
+
+    function editCierre(fecha, detalles) {
+        document.getElementById('cierreModalTitle').innerText = 'Editar Cierre Diario';
+        document.getElementById('fechaCierre').value = fecha;
+        document.getElementById('fechaCierre').readOnly = true; // No permitir cambiar fecha en edición para evitar crear duplicados por error
+        
+        document.querySelectorAll('.monto-input').forEach(input => {
+            let id = input.getAttribute('data-id');
+            let detalle = detalles.find(d => d.metodo_id === id);
+            input.value = detalle ? parseFloat(detalle.monto).toFixed(2) : '0.00';
+        });
+        
+        calcularTotal();
+        document.getElementById('cierreModal').style.display = 'flex';
+    }
+
+    function calcularTotal() {
+        let totalUSD = 0;
+        document.querySelectorAll('.monto-input').forEach(input => {
+            let val = parseFloat(input.value);
+            let moneda = input.getAttribute('data-moneda');
+            if (!isNaN(val) && val > 0) {
+                if (moneda === 'VES') {
+                    totalUSD += val / TASA_BCV;
+                } else {
+                    totalUSD += val;
+                }
+            }
+        });
+        document.getElementById('granTotal').innerText = totalUSD.toFixed(2);
+    }
+
+    async function submitCierre(event) {
+        event.preventDefault();
+        
+        const fecha = document.getElementById('fechaCierre').value;
+        if (!fecha) {
+            alert("Selecciona la fecha del cierre.");
+            return;
+        }
+        
+        const detalles = [];
+        let hayMontos = false;
+        
+        document.querySelectorAll('.monto-input').forEach(input => {
+            let val = parseFloat(input.value);
+            if (!isNaN(val) && val > 0) {
+                detalles.push({
+                    metodo_id: input.getAttribute('data-id'),
+                    monto_usd: val // En realidad enviamos el monto crudo, el backend hace la conversion basado en la moneda
+                });
+                hayMontos = true;
+            }
+        });
+        
+        if (!hayMontos) {
+            alert("Debes ingresar al menos un monto en algún método de pago.");
+            return;
+        }
+        
+        const payload = {
+            fecha: fecha,
+            detalles: detalles
+        };
+        
+        try {
+            const response = await fetch("{% url 'inventario:cierre_create' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                const errDiv = document.getElementById('errorMsg');
+                errDiv.style.display = 'block';
+                errDiv.innerText = "Error: " + data.error;
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión al guardar el cierre.");
+        }
+    }
+</script>
+{% endblock %}

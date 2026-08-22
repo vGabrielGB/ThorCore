@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card glass-panel" style="max-width: 800px;">
+    <div class="card-header">
+        <h2>{{ title }}</h2>
+    </div>
+    <div class="card-body">
+        <form method="post" class="custom-form">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger" style="color: var(--danger); margin-bottom: 20px;">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-grid">
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div class="field-error" style="color: var(--danger); font-size: 0.85rem; margin-top: 4px;">
+                            {{ field.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                {% if tasa_obj and tasa_obj.moneda == 'BCV' and config %}
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <h3 style="margin-top: 16px; margin-bottom: 8px; font-size: 1.1rem; color: var(--text-primary);">Configuración Margen Automático</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">¿Qué hacer si la tasa BCV real supera a la tasa margen actual?</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Aumento</label>
+                        <select name="tipo_aumento_bcv" class="form-control">
+                            <option value="PORCENTAJE" {% if config.tipo_aumento_bcv == 'PORCENTAJE' %}selected{% endif %}>Porcentaje</option>
+                            <option value="FIJO" {% if config.tipo_aumento_bcv == 'FIJO' %}selected{% endif %}>Monto Fijo</option>
+                            <option value="MANUAL" {% if config.tipo_aumento_bcv == 'MANUAL' %}selected{% endif %}>Manual (Solo alertar)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor de Aumento</label>
+                        <input type="number" step="0.01" name="valor_aumento_bcv" class="form-control" value="{{ config.valor_aumento_bcv|stringformat:"f" }}">
+                    </div>
+                {% endif %}
+                
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const checkbox = document.getElementById('id_se_vende_al_mayor_default');
+                        if(checkbox) {
+                            const tipoGanancia = document.getElementById('id_tipo_ganancia_mayor_default');
+                            const valorGanancia = document.getElementById('id_valor_ganancia_mayor_default');
+                            
+                            function updateVis() {
+                                if(checkbox.checked) {
+                                    if(tipoGanancia) tipoGanancia.closest('.form-group').style.display = 'flex';
+                                    if(valorGanancia) valorGanancia.closest('.form-group').style.display = 'flex';
+                                } else {
+                                    if(tipoGanancia) tipoGanancia.closest('.form-group').style.display = 'none';
+                                    if(valorGanancia) valorGanancia.closest('.form-group').style.display = 'none';
+                                }
+                            }
+                            checkbox.addEventListener('change', updateVis);
+                            updateVis();
+                        }
+
+                        const chkGananciaCat = document.getElementById('id_usar_ganancia_categoria');
+                        if(chkGananciaCat) {
+                            const tipoPer = document.getElementById('id_tipo_ganancia_personalizada');
+                            const valorPer = document.getElementById('id_valor_ganancia_personalizada');
+                            
+                            function updateGananciaVis() {
+                                if(chkGananciaCat.checked) {
+                                    if(tipoPer) tipoPer.closest('.form-group').style.display = 'none';
+                                    if(valorPer) valorPer.closest('.form-group').style.display = 'none';
+                                } else {
+                                    if(tipoPer) tipoPer.closest('.form-group').style.display = 'flex';
+                                    if(valorPer) valorPer.closest('.form-group').style.display = 'flex';
+                                }
+                            }
+                            chkGananciaCat.addEventListener('change', updateGananciaVis);
+                            updateGananciaVis();
+                        }
+                    });
+                </script>
+            </div>
+
+            <div class="form-actions" style="margin-top: 24px; display: flex; gap: 12px;">
+                <button type="submit" class="btn btn-primary" style="background: var(--accent-color); color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar</button>
+                <a href="javascript:history.back()" class="btn btn-secondary" style="background: rgba(255,255,255,0.1); color: var(--text-primary); padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500;">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .form-group label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    .form-control, .form-select {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--panel-border);
+        color: var(--text-primary);
+        padding: 10px 12px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    input[type="checkbox"].form-check-input {
+        width: 20px;
+        height: 20px;
+    }
+</style>
+{% endblock %}

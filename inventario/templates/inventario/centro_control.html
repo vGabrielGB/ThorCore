@@ -1,0 +1,713 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block page_title %}Centro de Control{% endblock %}
+{% block header_title %}Centro de Control{% endblock %}
+
+{% block content %}
+<div class="main-grid">
+
+    <!-- Columna 1 (Más ancha) -->
+    <div>
+        <!-- Categorías -->
+        <div class="card glass-panel" style="width: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Listado de Categorías</h2>
+                <button type="button" onclick="openCategoriaModal('new', '', 'PORCENTAJE', '30.00', 'false', 'PORCENTAJE', '15.00')" class="btn btn-primary">
+                    + Nueva Categoría
+                </button>
+            </div>
+            <div class="card-body" style="max-height: 260px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Ganancia Defecto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in categorias %}
+                        <tr>
+                            <td><strong>{{ c.nombre }}</strong></td>
+                            <td>{{ c.valor_ganancia_default }} {% if c.tipo_ganancia_default == 'PORCENTAJE' %}%{% else %}Bs/USD{% endif %}</td>
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    <!-- Cambiado de href a onclick para modal -->
+                                    <button type="button" onclick="openCategoriaModal('{{ c.id }}', '{{ c.nombre|escapejs }}', '{{ c.tipo_ganancia_default }}', '{{ c.valor_ganancia_default }}', '{{ c.se_vende_al_mayor_default|yesno:'true,false' }}', '{{ c.tipo_ganancia_mayor_default }}', '{{ c.valor_ganancia_mayor_default }}')" class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background:transparent; cursor:pointer;" title="Editar">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                          <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                        </svg>
+                                    </button>
+                                    
+                                    <form id="form-delete-cat-{{ c.id }}" method="POST" action="{% url 'inventario:categoria_delete' c.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="button" onclick="confirmDelete('form-delete-cat-{{ c.id }}', '¿Está seguro de que desea eliminar la categoría {{ c.nombre|escapejs }}?')" class="btn" style="color: #ef4444; padding: 4px; border: 1px solid #ef4444; background: none; cursor:pointer;" title="Eliminar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="empty-state">No hay categorías registradas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Métodos de Pago -->
+        <div class="card glass-panel" style="width: 100%; margin-top: 24px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Listado de Métodos de Pago</h2>
+                <button type="button" onclick="openMetodoModal('new', '', 'true')" class="btn btn-primary">
+                    + Nuevo Método
+                </button>
+            </div>
+            <div class="card-body" style="max-height: 260px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in metodos_pago %}
+                        <tr>
+                            <td><strong>{{ m.nombre }}</strong></td>
+                            <td>
+                                {% if m.activo %}
+                                <span style="color: var(--success); font-weight: bold;">Activo</span>
+                                {% else %}
+                                <span style="color: var(--danger); font-weight: bold;">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td style="display: flex; gap: 4px;">
+                                <button type="button" onclick="openMetodoModal('{{ m.id }}', '{{ m.nombre|escapejs }}', '{{ m.activo|yesno:'true,false' }}', '{{ m.moneda }}')" class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background:transparent; cursor:pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                    </svg>
+                                </button>
+                                <form id="form-delete-metodo-{{ m.id }}" method="POST" action="{% url 'inventario:metodo_pago_delete' m.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="button" onclick="confirmDelete('form-delete-metodo-{{ m.id }}', '¿Está seguro de que desea eliminar este método de pago?')" class="btn" style="color: var(--danger); padding: 4px; border: 1px solid var(--danger); background:transparent; cursor:pointer;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                          <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="empty-state">No hay métodos de pago registrados.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna 2 (Más angosta) -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Configuración Global de Precios -->
+        <div class="card glass-panel" style="width: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Configuración Global</h2>
+                <button type="button" class="btn btn-secondary" onclick="openRedondeoModal()">Editar Valores</button>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'inventario:update_configuracion' %}" id="config-form" onsubmit="event.preventDefault(); saveConfigAjax();">
+                    {% csrf_token %}
+                    
+                    <!-- Formateado con floatformat:2 en lugar de stringformat -->
+                    <input type="hidden" name="valor_redondeo_usd" id="hidden_valor_redondeo_usd" value="{{ config.valor_redondeo_usd|floatformat:2|default:'0.50' }}">
+                    <input type="hidden" name="valor_redondeo_ves" id="hidden_valor_redondeo_ves" value="{{ config.valor_redondeo_ves|floatformat:2|default:'10.00' }}">
+
+                    <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px;">
+                            <div>
+                                <span style="display: block; color: var(--text-primary); font-weight: 500; margin-bottom: 4px;">Redondear USD</span>
+                                <span style="color: var(--text-secondary); font-size: 13px;">Múltiplos de <span id="display_usd_val">{{ config.valor_redondeo_usd|floatformat:2|default:'0.50' }}</span></span>
+                            </div>
+                            <label class="switch">
+                              <input type="checkbox" id="check_usd" name="redondear_usd" {% if config.redondear_usd %}checked{% endif %} onchange="saveConfigAjax()">
+                              <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px;">
+                            <div>
+                                <span style="display: block; color: var(--text-primary); font-weight: 500; margin-bottom: 4px;">Redondear VES</span>
+                                <span style="color: var(--text-secondary); font-size: 13px;">Múltiplos de <span id="display_ves_val">{{ config.valor_redondeo_ves|floatformat:2|default:'10.00' }}</span></span>
+                            </div>
+                            <label class="switch">
+                              <input type="checkbox" id="check_ves" name="redondear_ves" {% if config.redondear_ves %}checked{% endif %} onchange="saveConfigAjax()">
+                              <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tasas de Cambio -->
+        <div class="card glass-panel" style="width: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Tasas Activas</h2>
+                <a href="{% url 'inventario:scrape_bcv' %}" class="btn btn-sync" title="Actualizar Tasas (BCV y USDT)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </a>
+            </div>
+            <div class="card-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Moneda</th>
+                            <th>Tasa Real</th>
+                            <th>Tasa Margen</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tasas %}
+                        <tr>
+                            <td><strong>{{ t.moneda }}</strong></td>
+                            <td style="color: var(--text-primary);">{{ t.tasa_real|floatformat:2 }}</td>
+                            <td style="color: var(--warning); font-weight: bold;">{{ t.tasa_margen|floatformat:2 }}</td>
+                            <td>
+                                <button type="button" onclick="openTasaModal('{{ t.moneda }}', '{{ t.tasa_real|unlocalize }}', '{{ t.tasa_margen|unlocalize }}', '{{ config.aumento_bcv_activo|yesno:'true,false' }}', '{{ config.tipo_aumento_bcv }}', '{{ config.valor_aumento_bcv|unlocalize }}', '{{ config.aumento_usdt_activo|yesno:'true,false' }}', '{{ config.tipo_aumento_usdt }}', '{{ config.valor_aumento_usdt|unlocalize }}')" class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background:transparent; cursor:pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty-state">No hay tasas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+
+</div>
+
+<!-- Estilos base para modales centrados -->
+<style>
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: var(--bg-color);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 12px;
+}
+.modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+}
+.close-btn:hover {
+    color: var(--danger);
+}
+</style>
+
+<!-- Modal para Configurar Redondeo -->
+<div id="redondeoModal" class="modal-backdrop">
+    <div class="modal-content glass-panel">
+        <div class="modal-header">
+            <h2>Editar Valores de Redondeo</h2>
+            <button class="close-btn" onclick="closeRedondeoModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Múltiplo de Redondeo USD</label>
+                <input type="number" step="0.01" min="0" id="modal_usd" class="form-control" value="{{ config.valor_redondeo_usd|floatformat:2|default:'0.50' }}" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Múltiplo de Redondeo VES</label>
+                <input type="number" step="0.01" min="0" id="modal_ves" class="form-control" value="{{ config.valor_redondeo_ves|floatformat:2|default:'10.00' }}" style="width:100%;">
+            </div>
+            <button type="button" class="btn btn-primary" style="width: 100%;" onclick="saveRedondeoModal()">Guardar Valores</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Categoría -->
+<div id="categoriaModal" class="modal-backdrop">
+    <div class="modal-content glass-panel">
+        <div class="modal-header">
+            <h2 id="categoriaModalTitle">Editar Categoría</h2>
+            <button class="close-btn" onclick="closeCategoriaModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="form-edit-categoria" onsubmit="event.preventDefault(); saveCategoriaAjax();">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Nombre</label>
+                    <input type="text" id="cat_nombre" name="nombre" class="form-control" style="width:100%;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tipo de Ganancia Default</label>
+                    <select id="cat_tipo_ganancia" name="tipo_ganancia_default" class="form-control" style="width:100%;" required>
+                        <option value="PORCENTAJE">Porcentaje (%)</option>
+                        <option value="FIJO">Monto Fijo (Bs/USD)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Valor Ganancia Default</label>
+                    <input type="number" step="0.01" id="cat_valor_ganancia" name="valor_ganancia_default" class="form-control" style="width:100%;" required>
+                </div>
+
+                <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin-bottom: 16px;">
+                
+                <div class="form-group" style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="cat_se_vende_mayor" name="se_vende_al_mayor_default" class="form-check-input" onchange="toggleCategoriaMayor()">
+                    <label for="cat_se_vende_mayor" style="margin:0; color:var(--text-secondary);">¿Se vende al mayor por defecto?</label>
+                </div>
+                
+                <div id="catMayorFields" style="display:none;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tipo de Ganancia Mayor Default</label>
+                        <select id="cat_tipo_ganancia_mayor" name="tipo_ganancia_mayor_default" class="form-control" style="width:100%;">
+                            <option value="PORCENTAJE">Porcentaje (%)</option>
+                            <option value="FIJO">Monto Fijo (Bs/USD)</option>
+                        </select>
+                    </div>
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Valor Ganancia Mayor Default</label>
+                    <input type="number" step="0.01" id="cat_valor_ganancia_mayor" name="valor_ganancia_mayor_default" class="form-control" style="width:100%;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="closeCategoriaModal()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+
+<!-- Modal para Editar Método de Pago -->
+<div id="metodoModal" class="modal-backdrop">
+    <div class="modal-content glass-panel">
+        <div class="modal-header">
+            <h2 id="metodoModalTitle">Editar Método de Pago</h2>
+            <button class="close-btn" onclick="closeMetodoModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="form-edit-metodo" onsubmit="event.preventDefault(); saveMetodoAjax();">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Nombre</label>
+                    <input type="text" id="metodo_nombre" name="nombre" class="form-control" style="width:100%;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Moneda Principal</label>
+                    <select id="metodo_moneda" name="moneda" class="form-control" style="width:100%;" required>
+                        <option value="USD">Dólares ($)</option>
+                        <option value="VES">Bolívares (Bs)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="metodo_activo" name="activo" class="form-check-input">
+                    <label for="metodo_activo" style="margin:0; color:var(--text-secondary);">¿Está activo?</label>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeMetodoModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Tasa -->
+<div id="tasaModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content glass-panel" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 id="tasaModalTitle">Editar Tasa</h3>
+            <button class="close-btn" onclick="closeTasaModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="form-edit-tasa" onsubmit="event.preventDefault(); saveTasaAjax();">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Real</label>
+                    <input type="number" step="0.000001" id="tasa_real" name="tasa_real" class="form-control" style="width:100%;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Margen</label>
+                    <input type="number" step="0.000001" id="tasa_margen" name="tasa_margen" class="form-control" style="width:100%;" required>
+                </div>
+                
+                <div id="tasaConfigFields" style="display:none;">
+                    <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin-bottom: 16px;">
+                    <h4 style="margin-bottom: 16px; font-size: 14px; color: var(--text-secondary);">Configuración Aumento Automático</h4>
+                    
+                    <div class="form-group" style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="aumento_activo" class="form-check-input" onchange="document.getElementById('aumento_activo_hidden').value = this.checked ? 'true' : 'false';">
+                        <input type="hidden" id="aumento_activo_hidden" name="" value="false">
+                        <label for="aumento_activo" style="margin:0; color:var(--text-secondary);">Habilitar aumento automático</label>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tipo Aumento</label>
+                        <select id="tipo_aumento" class="form-control" style="width:100%;">
+                            <option value="PORCENTAJE">Porcentaje (%)</option>
+                            <option value="FIJO">Monto Fijo (Bs)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Valor Aumento</label>
+                        <input type="number" step="0.01" id="valor_aumento" class="form-control" style="width:100%;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTasaModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Genérico de Confirmación -->
+<div id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+    <div class="card glass-panel" style="width: 100%; max-width: 400px; position: relative; text-align: center;">
+        <div class="card-header">
+            <h2 style="color: var(--danger);">Confirmar Acción</h2>
+        </div>
+        <div class="card-body">
+            <p id="confirmMessage" style="color: var(--text-secondary); margin-bottom: 24px; font-size: 1.1rem;"></p>
+            <div style="display: flex; justify-content: center; gap: 12px;">
+                <button type="button" class="btn btn-secondary" style="min-width: 100px;" onclick="closeConfirmModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" style="background: var(--danger); min-width: 100px; border: none;" onclick="executeConfirmDelete()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Lógica Modal Redondeo
+    function openRedondeoModal() {
+        document.getElementById('redondeoModal').style.display = 'flex';
+    }
+    function closeRedondeoModal() {
+        document.getElementById('redondeoModal').style.display = 'none';
+    }
+    
+    function formatNumber(num) {
+        return parseFloat(num).toFixed(2);
+    }
+
+    function saveRedondeoModal() {
+        const valUsd = formatNumber(document.getElementById('modal_usd').value);
+        const valVes = formatNumber(document.getElementById('modal_ves').value);
+        
+        document.getElementById('hidden_valor_redondeo_usd').value = valUsd;
+        document.getElementById('hidden_valor_redondeo_ves').value = valVes;
+        
+        document.getElementById('display_usd_val').innerText = valUsd;
+        document.getElementById('display_ves_val').innerText = valVes;
+        
+        closeRedondeoModal();
+        saveConfigAjax();
+    }
+
+    // Lógica AJAX Configuración
+    function saveConfigAjax() {
+        const data = {
+            redondear_usd: document.getElementById('check_usd').checked,
+            redondear_ves: document.getElementById('check_ves').checked,
+            valor_redondeo_usd: document.getElementById('hidden_valor_redondeo_usd').value,
+            valor_redondeo_ves: document.getElementById('hidden_valor_redondeo_ves').value,
+        };
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const url = "{% url 'inventario:update_configuracion' %}";
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(response => {
+            if (response.success) {
+                // Configuración guardada silenciósamente
+                console.log('Configuración guardada.');
+            } else {
+                alert("Error al guardar la configuración.");
+            }
+        })
+        .catch(error => {
+            console.error("Fetch error:", error);
+        });
+    }
+
+    // Lógica Modal Categoría
+    function toggleCategoriaMayor() {
+        const isChecked = document.getElementById('cat_se_vende_mayor').checked;
+        const mayorFields = document.getElementById('catMayorFields');
+        const tipoMayor = document.getElementById('cat_tipo_ganancia_mayor');
+        const valorMayor = document.getElementById('cat_valor_ganancia_mayor');
+        
+        if (isChecked) {
+            mayorFields.style.display = 'block';
+            tipoMayor.required = true;
+            valorMayor.required = true;
+        } else {
+            mayorFields.style.display = 'none';
+            tipoMayor.required = false;
+            valorMayor.required = false;
+        }
+    }
+
+    function openCategoriaModal(id, nombre, tipo_ganancia, valor_ganancia, vende_mayor, tipo_mayor, valor_mayor) {
+        if (id === 'new') {
+            document.getElementById('categoriaModalTitle').innerText = 'Nueva Categoría';
+        } else {
+            document.getElementById('categoriaModalTitle').innerText = 'Editar Categoría';
+        }
+        
+        document.getElementById('cat_nombre').value = nombre;
+        document.getElementById('cat_tipo_ganancia').value = tipo_ganancia;
+        document.getElementById('cat_valor_ganancia').value = parseFloat(valor_ganancia).toFixed(2);
+        
+        document.getElementById('cat_se_vende_mayor').checked = (vende_mayor === 'true');
+        
+        if(tipo_mayor) document.getElementById('cat_tipo_ganancia_mayor').value = tipo_mayor;
+        if(valor_mayor) document.getElementById('cat_valor_ganancia_mayor').value = parseFloat(valor_mayor).toFixed(2);
+        
+        toggleCategoriaMayor();
+        
+        let actionUrl = (id === 'new') 
+            ? "{% url 'inventario:categoria_create' %}" 
+            : "{% url 'inventario:categoria_edit' 0 %}".replace('0', id);
+            
+        document.getElementById('form-edit-categoria').dataset.action = actionUrl;
+        
+        document.getElementById('categoriaModal').style.display = 'flex';
+    }
+    
+    function closeCategoriaModal() {
+        document.getElementById('categoriaModal').style.display = 'none';
+    }
+
+    function saveCategoriaAjax() {
+        const form = document.getElementById('form-edit-categoria');
+        const url = form.dataset.action;
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(response => {
+            if (response.success) {
+                closeCategoriaModal();
+                location.reload(); 
+            } else {
+                alert("Error al guardar la categoría: " + JSON.stringify(response.errors));
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // Lógica Modal Método de Pago
+    function openMetodoModal(id, nombre, activo, moneda = 'USD') {
+        if (id === 'new') {
+            document.getElementById('metodoModalTitle').innerText = 'Nuevo Método de Pago';
+        } else {
+            document.getElementById('metodoModalTitle').innerText = 'Editar Método de Pago';
+        }
+        
+        document.getElementById('metodo_nombre').value = nombre;
+        document.getElementById('metodo_moneda').value = moneda;
+        document.getElementById('metodo_activo').checked = (activo === 'true');
+        
+        let actionUrl = (id === 'new') 
+            ? "{% url 'inventario:metodo_pago_create' %}" 
+            : "{% url 'inventario:metodo_pago_edit' 0 %}".replace('0', id);
+            
+        document.getElementById('form-edit-metodo').dataset.action = actionUrl;
+        
+        document.getElementById('metodoModal').style.display = 'flex';
+    }
+    
+    function closeMetodoModal() {
+        document.getElementById('metodoModal').style.display = 'none';
+    }
+
+    function saveMetodoAjax() {
+        const form = document.getElementById('form-edit-metodo');
+        const url = form.dataset.action;
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(response => {
+            if (response.success) {
+                closeMetodoModal();
+                location.reload(); 
+            } else {
+                alert("Error al guardar el método: " + JSON.stringify(response.errors));
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // Lógica Modal Tasas
+    function openTasaModal(moneda, tasa_real, tasa_margen, bcv_activo, tipo_bcv, valor_bcv, usdt_activo, tipo_usdt, valor_usdt) {
+        document.getElementById('tasaModalTitle').innerText = 'Editar Tasa ' + moneda;
+        
+        document.getElementById('tasa_real').value = parseFloat(tasa_real.replace(',', '.'));
+        document.getElementById('tasa_margen').value = parseFloat(tasa_margen.replace(',', '.'));
+        
+        const configFields = document.getElementById('tasaConfigFields');
+        const selectTipo = document.getElementById('tipo_aumento');
+        const inputValor = document.getElementById('valor_aumento');
+        const checkboxActivo = document.getElementById('aumento_activo');
+        const hiddenActivo = document.getElementById('aumento_activo_hidden');
+
+        if (moneda === 'BCV') {
+            configFields.style.display = 'block';
+            checkboxActivo.checked = bcv_activo === 'true';
+            hiddenActivo.value = bcv_activo === 'true' ? 'true' : 'false';
+            hiddenActivo.name = 'aumento_bcv_activo';
+            selectTipo.name = 'tipo_aumento_bcv';
+            selectTipo.value = tipo_bcv;
+            inputValor.name = 'valor_aumento_bcv';
+            inputValor.value = parseFloat(valor_bcv.replace(',', '.'));
+        } else if (moneda === 'USDT_VES') {
+            configFields.style.display = 'block';
+            checkboxActivo.checked = usdt_activo === 'true';
+            hiddenActivo.value = usdt_activo === 'true' ? 'true' : 'false';
+            hiddenActivo.name = 'aumento_usdt_activo';
+            selectTipo.name = 'tipo_aumento_usdt';
+            selectTipo.value = tipo_usdt;
+            inputValor.name = 'valor_aumento_usdt';
+            inputValor.value = parseFloat(valor_usdt.replace(',', '.'));
+        } else {
+            configFields.style.display = 'none';
+        }
+        
+        let actionUrl = "{% url 'inventario:tasa_edit' 'MONEDA_PH' %}".replace('MONEDA_PH', moneda);
+        document.getElementById('form-edit-tasa').dataset.action = actionUrl;
+        
+        document.getElementById('tasaModal').style.display = 'flex';
+    }
+
+    function closeTasaModal() {
+        document.getElementById('tasaModal').style.display = 'none';
+    }
+
+    // Modal de Confirmación Genérico
+    let currentDeleteFormId = null;
+
+    function confirmDelete(formId, message) {
+        currentDeleteFormId = formId;
+        document.getElementById('confirmMessage').innerText = message;
+        document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+        currentDeleteFormId = null;
+        document.getElementById('confirmModal').style.display = 'none';
+    }
+
+    function executeConfirmDelete() {
+        if (currentDeleteFormId) {
+            document.getElementById(currentDeleteFormId).submit();
+        }
+    }
+
+    function saveTasaAjax() {
+        const form = document.getElementById('form-edit-tasa');
+        const url = form.dataset.action;
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(response => {
+            if (response.success) {
+                closeTasaModal();
+                location.reload();
+            } else {
+                alert("Error al guardar la tasa: " + JSON.stringify(response.errors));
+            }
+        })
+        .catch(err => console.error(err));
+    }
+</script>
+{% endblock %}

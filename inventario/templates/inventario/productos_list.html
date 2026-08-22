@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Inventario de Productos{% endblock %}
+{% block header_title %}Inventario de Productos{% endblock %}
+
+{% block content %}
+<div class="card glass-panel">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="flex: 1;">Listado de Productos al Detal</h2>
+        
+        <form id="filterForm" method="GET" style="display: flex; gap: 12px; align-items: center; background: var(--bg-primary); padding: 8px 12px; border-radius: 8px; flex: 2; justify-content: center;">
+            <input type="text" name="q" id="searchBar" placeholder="Buscar producto..." value="{{ q }}" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); flex-grow: 1; max-width: 300px;">
+            <select name="categoria" id="catFilter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                <option value="">Todas las categorías</option>
+                {% for c in categorias %}
+                <option value="{{ c.id }}" {% if categoria_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+                {% endfor %}
+            </select>
+
+        </form>
+
+        <div style="display: flex; gap: 12px; flex: 1; justify-content: flex-end;">
+            <a href="{% url 'inventario:producto_export_pdf' %}?q={{ q }}&categoria={{ categoria_id }}" class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 8px 16px; border-radius: 8px; text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 500;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>                PDF
+            </a>
+            <button onclick="openWizard()" class="btn btn-primary" style="background: var(--accent-color); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; border:none; cursor:pointer;">+ Nuevo</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Cantidad</th>
+                    <th>Costo Base</th>
+                    <th>PVP TOTAL</th>
+                    <th>PVP DETAL</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in productos %}
+                <tr>
+                    <td style="color: var(--text-secondary);">#{{ p.id }}</td>
+                    <td title="{{ p.nombre }}"><strong>{{ p.nombre|truncatechars:20 }}</strong></td>
+                    <td>{{ p.categoria.nombre }}</td>
+                    <td>
+                        <button onclick="openStockModal({{ p.id }}, {{ p.cantidad_en_tienda }}, {{ p.cantidad_en_almacen }})" class="btn" style="background: none; border: none; cursor: pointer; padding: 0;">
+                            <span class="stock-badge {% if p.cantidad_en_tienda == 0 %}danger{% elif p.cantidad_en_tienda <= 2 %}warning{% else %}success{% endif %}">{{ p.cantidad_en_tienda|floatformat:0 }}</span> 
+                            <span style="color: var(--text-primary); font-weight: bold; margin-left: 4px;">/ {{ p.cantidad_en_almacen|floatformat:0 }}</span>
+                        </button>
+                    </td>
+                    <td>{{ p.medida_cantidad_total|floatformat:2 }} {% if p.tipo_medida == 'UNIDAD' %}uni{% else %}{{ p.tipo_medida|lower }}{% endif %}</td>
+                    <td>
+                        {{ p.costo_base|floatformat:2 }} {{ p.moneda_compra }}
+                        {% if p.moneda_compra == 'COP' %}
+                            <br><small style="color: var(--text-secondary);">(${{ p.costo_base_usd|floatformat:2 }})</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-success">{{ p.precio_venta_publico|default:"Sin PVP"|floatformat:2 }} {{ p.moneda_venta }}</td>
+                    <td class="text-success" style="opacity: 0.9;">
+                        {% if p.precio_venta_detal_porcion %}
+                            {{ p.precio_venta_detal_porcion|floatformat:2 }} {{ p.moneda_venta }}
+                        {% else %}
+                            <span style="color: var(--text-secondary); font-size: 0.9em;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button onclick="openEditModal({{ p.id }})" class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background: none;" title="Editar Completo">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                </svg>
+                            </button>
+                            {% if p.se_vende_al_mayor %}
+                            <button onclick="toggleMayor({{ p.id }}, false)" class="btn" style="color: var(--warning); padding: 4px; border: 1px solid var(--warning);" title="Desactivar Venta al Mayor">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5v9l9 5.25" />
+                                </svg>
+                            </button>
+                            {% else %}
+                            <a href="{% url 'inventario:productos_mayor_list' %}?activate_id={{ p.id }}" class="btn" style="color: var(--text-secondary); padding: 4px; border: 1px solid var(--text-secondary);" title="Activar Venta al Mayor">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                                </svg>
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'inventario:producto_delete' p.id %}" onclick="confirmAction(event, this.href, '¿Estás seguro de que deseas eliminar este producto?');" class="btn" style="color: var(--danger); padding: 4px; border: 1px solid var(--danger);" title="Eliminar">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                </svg>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10" class="empty-state">No hay productos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if page_obj %}
+        {% include 'inventario/pagination.html' %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Edit Product -->
+<div id="modalEditProduct" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+    <div id="editProductContainer" class="card glass-panel" style="width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative;">
+        <!-- Partial form will be injected here -->
+    </div>
+</div>
+
+<!-- Modal 1: Elegir Categoría -->
+<div id="modalStep1" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card glass-panel" style="width: 100%; max-width: 400px; position: relative;">
+        <button type="button" onclick="closeModals()" style="position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">&times;</button>
+        <div class="card-header">
+            <h2>Paso 1: Categoría</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="font-weight: 500; color: var(--text-secondary); font-size: 0.9rem;">Elige la Categoría</label>
+                <select id="wizardCategoria" class="form-select">
+                    <option value="">Selecciona...</option>
+                    {% for c in categorias %}
+                    <option value="{{ c.id }}" data-tipo="{{ c.tipo }}">{{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-actions" style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                <button onclick="nextStep2()" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px;">Continuar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Detalles del Producto -->
+<div id="modalStep2" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card glass-panel" style="width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative;">
+        <button type="button" onclick="closeModals()" style="position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">&times;</button>
+        <div class="card-header">
+            <h2>Paso 2: Detalles del Producto</h2>
+        </div>
+        <div class="card-body">
+            <form id="formStep2" class="custom-form" onsubmit="submitStep2(event)">
+                {% csrf_token %}
+                <input type="hidden" name="categoria" id="hiddenCategoria">
+                
+                <!-- By default: se_vende_al_mayor is False in this step. -->
+                <input type="hidden" name="se_vende_al_mayor" value="False">
+                
+                <div id="form2Errors" class="alert alert-danger" style="display:none;"></div>
+                
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Nombre</label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Costo Base</label>
+                        <input type="number" step="0.01" name="costo_base" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Moneda Compra</label>
+                        <select name="moneda_compra" class="form-select">
+                            <option value="USD">Dólares</option>
+                            <option value="COP">Pesos Colombianos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Moneda Venta</label>
+                        <select name="moneda_venta" class="form-select">
+                            <option value="VES">Bolívares</option>
+                            <option value="USD">Dólares</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Unidad de Medida</label>
+                        <select name="tipo_medida" class="form-select">
+                            <option value="UNIDAD">Unidades</option>
+                            <option value="KG">Kilogramos</option>
+                            <option value="GR">Gramos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Cantidad Total del Empaque</label>
+                        <input type="number" step="0.01" name="medida_cantidad_total" class="form-control" value="1.00" title="Ej: Si es un saco de 30kg, pon 30. Si es una bolsa de 250gr, pon 250.">
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Tamaño de Porción a Vender</label>
+                        <input type="number" step="0.01" name="medida_cantidad_porcion" class="form-control" value="1.00" title="Ej: Si vas a vender el saco de 30kg por kilo, pon 1. Si venderás la bolsa de 250gr en bolsitas de 10gr, pon 10.">
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Cantidad en Almacén</label>
+                        <input type="number" name="cantidad_en_almacen" class="form-control" value="0">
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Cantidad en Tienda</label>
+                        <input type="number" name="cantidad_en_tienda" class="form-control" value="0">
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="usar_ganancia_categoria" id="wUsarGanCat" class="form-check-input" checked>
+                        <label for="wUsarGanCat" style="margin: 0;">Usar ganancia de categoría</label>
+                    </div>
+                    
+                    <div class="form-group" id="groupGanPersType" style="display: none; flex-direction: column; gap: 8px;">
+                        <label>Tipo de ganancia personalizada</label>
+                        <select name="tipo_ganancia_personalizada" class="form-select">
+                            <option value="PORCENTAJE">Porcentaje</option>
+                            <option value="FIJO">Monto Fijo USD</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="groupGanPersVal" style="display: none; flex-direction: column; gap: 8px;">
+                        <label>Valor de ganancia personalizada</label>
+                        <input type="number" step="0.01" name="valor_ganancia_personalizada" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-actions" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalStep2').style.display='none'; document.getElementById('modalStep1').style.display='flex';" style="padding: 10px 20px; border-radius: 8px; background: transparent; border: 1px solid var(--text-secondary); color: var(--text-primary);">Atrás</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px;">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal 4: Ajustar Stock Rápido -->
+<div id="modalStock" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card glass-panel" style="width: 100%; max-width: 400px; position: relative;">
+        <button type="button" onclick="document.getElementById('modalStock').style.display='none'" style="position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">&times;</button>
+        <div class="card-header">
+            <h2>Ajustar Stock</h2>
+        </div>
+        <div class="card-body">
+            <form id="formStock" class="custom-form" onsubmit="submitStock(event)">
+                {% csrf_token %}
+                <input type="hidden" id="stockProductoId" name="producto_id">
+                
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                    <label>Cantidad en Tienda</label>
+                    <input type="number" id="stockTienda" name="cantidad_en_tienda" class="form-control" min="0" required>
+                </div>
+                
+                <div id="descontarAlmacenContainer" style="display: none; margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-secondary); cursor: pointer;">
+                        <input type="checkbox" id="descontarAlmacenCheckbox" style="accent-color: var(--accent-color); width: 18px; height: 18px;">
+                        ¿Descontar diferencia del almacén?
+                    </label>
+                </div>
+                
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                    <label>Cantidad en Almacén</label>
+                    <input type="number" id="stockAlmacen" name="cantidad_en_almacen" class="form-control" min="0" required>
+                </div>
+                
+                <div class="form-actions" style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px;">Guardar Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-submit filters
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('filterForm');
+        const catFilter = document.getElementById('catFilter');
+        
+        catFilter.addEventListener('change', () => {
+            form.submit();
+        });
+        
+        // Optional: debounce for searchBar could be added here, but user can just press Enter
+    });
+
+    function closeModals() {
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2').style.display = 'none';
+        document.getElementById('modalStock').style.display = 'none';
+    }
+
+    function closeEditModal() {
+        document.getElementById('modalEditProduct').style.display = 'none';
+        document.getElementById('editProductContainer').innerHTML = '';
+    }
+
+    async function openEditModal(id) {
+        try {
+            const response = await fetch(`/productos/${id}/editar/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const html = await response.text();
+            document.getElementById('editProductContainer').innerHTML = html;
+            
+            // Lógica dinámica para el modal inyectado
+            const chkGananciaCat = document.getElementById('id_usar_ganancia_categoria');
+            if(chkGananciaCat) {
+                const tipoPer = document.getElementById('id_tipo_ganancia_personalizada');
+                const valorPer = document.getElementById('id_valor_ganancia_personalizada');
+                
+                function updateGananciaVis() {
+                    if(chkGananciaCat.checked) {
+                        if(tipoPer) tipoPer.closest('.form-group').style.display = 'none';
+                        if(valorPer) valorPer.closest('.form-group').style.display = 'none';
+                    } else {
+                        if(tipoPer) tipoPer.closest('.form-group').style.display = 'flex';
+                        if(valorPer) valorPer.closest('.form-group').style.display = 'flex';
+                    }
+                }
+                chkGananciaCat.addEventListener('change', updateGananciaVis);
+                updateGananciaVis();
+            }
+
+            document.getElementById('modalEditProduct').style.display = 'flex';
+        } catch (e) {
+            console.error(e);
+            alert("Error cargando formulario");
+        }
+    }
+
+    async function submitEditModal(event, id) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        try {
+            const response = await fetch(`/productos/${id}/editar/`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert("Error guardando cambios. Revisa los datos.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    }
+
+    function openWizard() {
+        document.getElementById('formStep2').reset();
+        document.getElementById('wizardCategoria').value = '';
+        document.getElementById('form2Errors').style.display = 'none';
+        document.getElementById('modalStep1').style.display = 'flex';
+    }
+
+    function nextStep2() {
+        const catSelect = document.getElementById('wizardCategoria');
+        const catId = catSelect.value;
+        if (!catId) {
+            alert("Por favor selecciona una categoría.");
+            return;
+        }
+        
+        const option = catSelect.options[catSelect.selectedIndex];
+        const tipo = option.getAttribute('data-tipo');
+        
+        document.getElementById('hiddenCategoria').value = catId;
+        
+        // Always show the fields for measurements now
+        // Assuming we always want them available, or hide if it's ACCESORIO? 
+        // User requested: "productos que se categorizen como alimentos, se pueda elegir su medida". 
+        // But medicines might also have units. Let's just leave it visible.
+        
+        // Setup events for custom profit
+        const cbUsarGan = document.getElementById('wUsarGanCat');
+        const updateGanPers = () => {
+            document.getElementById('groupGanPersType').style.display = cbUsarGan.checked ? 'none' : 'flex';
+            document.getElementById('groupGanPersVal').style.display = cbUsarGan.checked ? 'none' : 'flex';
+        };
+        cbUsarGan.onchange = updateGanPers;
+        cbUsarGan.checked = true;
+        updateGanPers();
+        
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2').style.display = 'flex';
+    }
+
+    async function submitStep2(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        formData.append('is_ajax', 'true');
+        
+        try {
+            const response = await fetch("{% url 'inventario:producto_create' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                // Producto guardado, recargamos
+                window.location.reload();
+            } else {
+                const errDiv = document.getElementById('form2Errors');
+                errDiv.style.display = 'block';
+                errDiv.innerHTML = JSON.stringify(data.errors);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar el producto.");
+        }
+    }
+
+    async function toggleMayor(productoId, enable) {
+        const result = await Swal.fire({
+            title: 'Agrothor dice:',
+            text: "¿Deseas " + (enable ? "activar" : "desactivar") + " la venta al mayor?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c5ce7',
+            confirmButtonText: 'Aceptar',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!result.isConfirmed) return;
+        
+        const formData = new FormData();
+        formData.append('se_vende_al_mayor', enable ? 'true' : 'false');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        try {
+            const response = await fetch(`/productos/${productoId}/actualizar-mayor/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            if(data.success) {
+                window.location.reload();
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    let originalStockT = 0;
+    let originalStockA = 0;
+
+    function openStockModal(productoId, stockT, stockA) {
+        document.getElementById('stockProductoId').value = productoId;
+        const inputT = document.getElementById('stockTienda');
+        const inputA = document.getElementById('stockAlmacen');
+        
+        inputT.value = stockT;
+        inputA.value = stockA;
+        originalStockT = parseInt(stockT) || 0;
+        originalStockA = parseInt(stockA) || 0;
+        
+        const checkboxContainer = document.getElementById('descontarAlmacenContainer');
+        const checkbox = document.getElementById('descontarAlmacenCheckbox');
+        
+        checkbox.checked = false;
+        checkboxContainer.style.display = 'none';
+        
+        function updateAlmacen() {
+            const currentT = parseInt(inputT.value) || 0;
+            if (currentT > originalStockT) {
+                checkboxContainer.style.display = 'block';
+                if (checkbox.checked) {
+                    const diff = currentT - originalStockT;
+                    inputA.value = Math.max(0, originalStockA - diff);
+                } else {
+                    inputA.value = originalStockA;
+                }
+            } else {
+                checkboxContainer.style.display = 'none';
+                checkbox.checked = false;
+            }
+        }
+        
+        inputT.oninput = updateAlmacen;
+        checkbox.onchange = updateAlmacen;
+        
+        document.getElementById('modalStock').style.display = 'flex';
+    }
+
+    async function submitStock(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const pid = document.getElementById('stockProductoId').value;
+        
+        try {
+            const response = await fetch(`/productos/${pid}/actualizar-stock/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            
+            if(data.success) {
+                window.location.reload();
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Error en la conexión.");
+        }
+    }
+
+</script>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Resumen de Ventas{% endblock %}
+{% block header_title %}Resumen de Ventas{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-card glass-panel gradient-1">
+            <div class="stat-icon">💰</div>
+            <div class="stat-info">
+                <h3>Ventas Ayer</h3>
+                <p class="stat-value">${{ ventas_ayer|floatformat:2 }}</p>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-panel gradient-2">
+            <div class="stat-icon">📅</div>
+            <div class="stat-info">
+                <h3>Ventas del Mes</h3>
+                <p class="stat-value">${{ ventas_mes|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+        <!-- Recent Sales -->
+        <div class="card glass-panel">
+            <div class="card-header">
+                <h2>Ventas Recientes</h2>
+            </div>
+            <div class="card-body">
+                {% if ventas_recientes %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Tipo</th>
+                            <th>Total (USD)</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venta in ventas_recientes %}
+                        <tr>
+                            <td>{{ venta.descripcion|truncatechars:50 }}</td>
+                            <td>{{ venta.tipo }}</td>
+                            <td class="text-success">+${{ venta.total_usd|floatformat:2 }}</td>
+                            <td>{{ venta.fecha|date:"d M, H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="empty-state">No hay ventas registradas recientemente.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-col">
+            <!-- Exchange Rates -->
+            <div class="card glass-panel">
+                <div class="card-header">
+                    <h2>Tasas de Cambio</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="rates-list">
+                        {% for tasa in tasas %}
+                        <li class="rate-item">
+                            <span class="currency-name">{{ tasa.moneda }}</span>
+                            <span class="currency-value">{{ tasa.tasa_margen|floatformat:2 }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="empty-state">No hay tasas configuradas.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Low Inventory Alerts -->
+            <div class="card glass-panel alert-card">
+                <div class="card-header">
+                    <h2>⚠️ Alertas de Inventario</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="alerts-list">
+                        {% for producto in productos_bajo_stock %}
+                        <li class="alert-item">
+                            <span class="product-name">{{ producto.nombre }}</span>
+                            <span class="stock-badge {% if producto.stock_total == 0 %}danger{% else %}warning{% endif %}">
+                                {{ producto.stock_total }} en stock
+                            </span>
+                        </li>
+                        {% empty %}
+                        <li class="empty-state text-success">El inventario está en buen estado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

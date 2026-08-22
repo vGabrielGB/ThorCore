@@ -1,0 +1,69 @@
+<div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>{{ title }}</h2>
+    <button type="button" onclick="closeEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">&times;</button>
+</div>
+<div class="card-body">
+    <form id="editFormPartial" method="post" class="custom-form" onsubmit="submitEditModal(event, {{ form.instance.id }})">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" style="color: var(--danger); margin-bottom: 20px;">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="form-grid">
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="field-error" style="color: var(--danger); font-size: 0.85rem; margin-top: 4px;">
+                        {{ field.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions" style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary" style="background: var(--accent-color); color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar</button>
+            <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="background: rgba(255,255,255,0.1); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer;">Cancelar</button>
+
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .form-group label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    .form-control, .form-select {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--panel-border);
+        color: var(--text-primary);
+        padding: 10px 12px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    input[type="checkbox"].form-check-input {
+        width: 20px;
+        height: 20px;
+    }
+</style>
