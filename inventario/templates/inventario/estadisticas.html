@@ -6,14 +6,14 @@
 {% block content %}
 <!-- Filtros -->
 <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-    <div id="filter-tipo" style="display: flex; gap: 8px;">
+    <div id="filter-tipo" style="display: flex; gap: 8px; flex-wrap: wrap;">
         <button data-tipo="todos" class="btn btn-primary" style="border-radius: 20px; padding: 6px 16px;">Global</button>
         <button data-tipo="mayor" class="btn btn-secondary" style="border-radius: 20px; padding: 6px 16px;">Solo Mayor</button>
         <button data-tipo="detal" class="btn btn-secondary" style="border-radius: 20px; padding: 6px 16px;">Solo Detal</button>
     </div>
     
     <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-        <div id="filter-tiempo" style="display: flex; gap: 8px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 20px;">
+        <div id="filter-tiempo" style="display: flex; gap: 8px; flex-wrap: wrap; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 20px;">
             <button data-tiempo="7dias" class="btn btn-primary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Diario (7d)</button>
             <button data-tiempo="1mes" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Diario (1m)</button>
             <button data-tiempo="1ano" class="btn btn-secondary" style="border-radius: 20px; padding: 4px 12px; font-size: 0.9em;">Diario (1a)</button>
@@ -31,7 +31,7 @@
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+<div class="stats-row" style="margin-bottom: 32px;">
     
     <!-- Columna Izquierda: Lista de Productos -->
     <div style="display: flex; flex-direction: column; gap: 24px;">

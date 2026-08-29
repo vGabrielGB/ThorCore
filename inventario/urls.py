@@ -1,9 +1,15 @@
 from django.urls import path
 from . import views
+from . import auth_views
 
 app_name = 'inventario'
 
 urlpatterns = [
+    # Auth
+    path('login/', auth_views.custom_login_view, name='login'),
+    path('verificar-2fa/', auth_views.verify_2fa_view, name='verify_2fa'),
+    path('logout/', auth_views.custom_logout_view, name='logout'),
+    
     path('', views.dashboard_view, name='dashboard'),
     path('estadisticas/', views.dashboard_estadisticas_view, name='estadisticas'),
     
@@ -45,6 +51,8 @@ urlpatterns = [
     
     # Tasas
     path('tasas/', views.tasas_list_view, name='tasas_list'),
+    path('tasas/nueva/', views.tasa_create_view, name='tasa_create'),
     path('tasas/<str:pk>/editar/', views.tasa_edit_view, name='tasa_edit'),
+    path('tasas/<str:pk>/eliminar/', views.tasa_delete_view, name='tasa_delete'),
     path('tasas/actualizar-bcv/', views.scrape_bcv_view, name='scrape_bcv'),
 ]

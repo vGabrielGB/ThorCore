@@ -33,6 +33,17 @@ class ProductoForm(forms.ModelForm):
             'cantidad_en_tienda': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            tasas = TasaCambio.objects.exclude(moneda__in=['BCV', 'USDT_VES'])
+            choices = [('USD', 'Dólares ($)')]
+            for t in tasas:
+                choices.append((t.moneda, t.moneda))
+            self.fields['moneda_compra'].choices = choices
+        except Exception:
+            pass
+
 
 
 class TasaCambioForm(forms.ModelForm):

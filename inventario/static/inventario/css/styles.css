@@ -1,5 +1,6 @@
 :root {
     /* Agrothor Default (Dark Dashboard) */
+    --logo-text-start: #ffffff;
     --bg-color: #0f111a;
     --panel-bg: rgba(30, 31, 48, 0.75);
     --panel-border: rgba(255, 255, 255, 0.05);
@@ -23,6 +24,7 @@
 
 [data-theme="light"] {
     /* Opcional Light mode if they toggle, kept simple */
+    --logo-text-start: #1e293b;
     --bg-color: #f1f5f9;
     --panel-bg: rgba(255, 255, 255, 0.9);
     --panel-border: rgba(0, 0, 0, 0.1);
@@ -120,26 +122,62 @@ body {
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--text-primary);
-    background: linear-gradient(90deg, #fff, var(--accent-color));
+    background: linear-gradient(90deg, var(--logo-text-start), var(--accent-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
+/* Custom Theme Switch */
 .theme-toggle-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--panel-border);
-    color: var(--text-secondary);
-    border-radius: 8px;
-    padding: 8px;
+    background: transparent;
+    border: none;
     cursor: pointer;
     display: flex;
-    transition: all 0.3s ease;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-secondary);
+    position: relative;
+    overflow: hidden;
 }
 
-.theme-toggle-btn:hover {
-    background: var(--accent-color);
-    color: #fff;
-    transform: rotate(15deg) scale(1.1);
+.theme-toggle-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--switch-bg);
+    border-radius: 50%;
+    transform: scale(0);
+    transition: transform 0.3s ease;
+    z-index: 0;
+}
+
+.theme-toggle-btn:hover::before {
+    transform: scale(1);
+}
+
+.theme-toggle-btn svg {
+    z-index: 1;
+    position: relative;
+    width: 22px;
+    height: 22px;
+    transition: transform 0.5s rotate, color 0.3s ease;
+}
+
+.theme-toggle-btn:hover svg {
+    color: var(--accent-color);
+    transform: rotate(30deg);
+}
+
+[data-theme="light"] .theme-toggle-btn:hover svg {
+    color: #f59e0b;
 }
 
 .sidebar-nav {
@@ -216,6 +254,7 @@ body {
     animation: fadeIn 0.6s ease-out;
     width: 100%;
     max-width: 100vw;
+    min-width: 0;
 }
 
 @keyframes fadeIn {
@@ -357,6 +396,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
+    width: 100%;
 }
 
 .card-header {
@@ -366,6 +407,8 @@ body {
     justify-content: space-between;
     align-items: center;
     background: rgba(0, 0, 0, 0.2);
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .card-body { padding: 24px; flex: 1; overflow-x: auto; }
@@ -529,10 +572,25 @@ body {
     
     .mobile-menu-btn { display: block; }
     
-    .main-content { padding: 16px; }
+    .main-content { padding: 16px; width: 100%; max-width: 100vw; }
     .top-header { padding: 12px 16px; border-radius: 12px; }
     .stats-row { grid-template-columns: 1fr; }
     .stat-card { padding: 16px; }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .card-header > form, .card-header > div {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .card-header .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* Utility / Misc */

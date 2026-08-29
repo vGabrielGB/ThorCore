@@ -17,7 +17,7 @@
                     + Nueva Categoría
                 </button>
             </div>
-            <div class="card-body" style="max-height: 260px; overflow-y: auto;">
+            <div class="card-body" style="max-height: 260px; overflow-y: auto; overflow-x: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -67,7 +67,7 @@
                     + Nuevo Método
                 </button>
             </div>
-            <div class="card-body" style="max-height: 260px; overflow-y: auto;">
+            <div class="card-body" style="max-height: 260px; overflow-y: auto; overflow-x: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -157,18 +157,23 @@
                 </form>
             </div>
         </div>
-
+        
         <!-- Tasas de Cambio -->
         <div class="card glass-panel" style="width: 100%;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h2>Tasas Activas</h2>
-                <a href="{% url 'inventario:scrape_bcv' %}" class="btn btn-sync" title="Actualizar Tasas (BCV y USDT)">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
-                </a>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" onclick="openTasaCreateModal()" class="btn btn-primary" style="padding: 6px 12px; font-size: 14px;">
+                        + Nueva Tasa
+                    </button>
+                    <a href="{% url 'inventario:scrape_bcv' %}" class="btn btn-sync" title="Actualizar Tasas (BCV y USDT)">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                    </a>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="max-height: 260px; overflow-y: auto; overflow-x: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -185,11 +190,23 @@
                             <td style="color: var(--text-primary);">{{ t.tasa_real|floatformat:2 }}</td>
                             <td style="color: var(--warning); font-weight: bold;">{{ t.tasa_margen|floatformat:2 }}</td>
                             <td>
-                                <button type="button" onclick="openTasaModal('{{ t.moneda }}', '{{ t.tasa_real|unlocalize }}', '{{ t.tasa_margen|unlocalize }}', '{{ config.aumento_bcv_activo|yesno:'true,false' }}', '{{ config.tipo_aumento_bcv }}', '{{ config.valor_aumento_bcv|unlocalize }}', '{{ config.aumento_usdt_activo|yesno:'true,false' }}', '{{ config.tipo_aumento_usdt }}', '{{ config.valor_aumento_usdt|unlocalize }}')" class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background:transparent; cursor:pointer;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
-                                      <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                    </svg>
-                                </button>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" onclick="openTasaModal('{{ t.moneda }}', '{{ t.tasa_real|unlocalize }}', '{{ t.tasa_margen|unlocalize }}', '{{ config.aumento_bcv_activo|yesno:'true,false' }}', '{{ config.tipo_aumento_bcv }}', '{{ config.valor_aumento_bcv|unlocalize }}', '{{ config.aumento_usdt_activo|yesno:'true,false' }}', '{{ config.tipo_aumento_usdt }}', '{{ config.valor_aumento_usdt|unlocalize }}')" class="btn" style="color: var(--accent-color); padding: 4px; border: 1px solid var(--accent-color); background:transparent; cursor:pointer;" title="Editar">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                          <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                        </svg>
+                                    </button>
+                                    {% if t.moneda != 'BCV' and t.moneda != 'USDT_VES' %}
+                                    <form id="form-delete-tasa-{{ t.moneda }}" method="POST" action="{% url 'inventario:tasa_delete' t.moneda %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="button" onclick="confirmDelete('form-delete-tasa-{{ t.moneda }}', '¿Está seguro de que desea eliminar la tasa {{ t.moneda }}? Los productos que la usen pasarán a dólares.')" class="btn" style="color: var(--danger); padding: 4px; border: 1px solid var(--danger); background:transparent; cursor:pointer;" title="Eliminar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -380,6 +397,20 @@
         <div class="modal-body">
             <form id="form-edit-tasa" onsubmit="event.preventDefault(); saveTasaAjax();">
                 {% csrf_token %}
+                <div id="tasaIdFields" style="display:none;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Abreviación de la Moneda</label>
+                        <input type="text" id="edit_tasa_moneda" name="moneda" class="form-control" style="width:100%;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Moneda de Referencia</label>
+                        <select id="edit_tasa_referencia" name="referencia" class="form-control" style="width:100%;">
+                            <option value="">Ninguna</option>
+                            <option value="USDT">USDT</option>
+                            <option value="BCV">BCV</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Real</label>
                     <input type="number" step="0.000001" id="tasa_real" name="tasa_real" class="form-control" style="width:100%;" required>
@@ -415,6 +446,46 @@
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
                     <button type="submit" class="btn btn-primary">Guardar</button>
                     <button type="button" class="btn btn-secondary" onclick="closeTasaModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear Tasa -->
+<div id="tasaCreateModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content glass-panel" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Nueva Tasa</h3>
+            <button class="close-btn" onclick="closeTasaCreateModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="form-create-tasa" onsubmit="event.preventDefault(); saveTasaCreateAjax();">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Abreviación de la Moneda (Ej. COP)</label>
+                    <input type="text" id="create_tasa_moneda" name="moneda" class="form-control" style="width:100%;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Moneda de Referencia</label>
+                    <select id="create_tasa_referencia" name="referencia" class="form-control" style="width:100%;">
+                        <option value="">Ninguna</option>
+                        <option value="USDT">USDT</option>
+                        <option value="BCV">BCV</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Real</label>
+                    <input type="number" step="0.000001" id="create_tasa_real" name="tasa_real" class="form-control" style="width:100%;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Margen</label>
+                    <input type="number" step="0.000001" id="create_tasa_margen" name="tasa_margen" class="form-control" style="width:100%;" required>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTasaCreateModal()">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -625,6 +696,27 @@
     function openTasaModal(moneda, tasa_real, tasa_margen, bcv_activo, tipo_bcv, valor_bcv, usdt_activo, tipo_usdt, valor_usdt) {
         document.getElementById('tasaModalTitle').innerText = 'Editar Tasa ' + moneda;
         
+        let baseMoneda = moneda;
+        let referencia = "";
+        
+        if (moneda !== 'BCV' && moneda !== 'USDT_VES') {
+            document.getElementById('tasaIdFields').style.display = 'block';
+            if (moneda.endsWith('_USDT')) {
+                baseMoneda = moneda.replace('_USDT', '');
+                referencia = 'USDT';
+            } else if (moneda.endsWith('_BCV')) {
+                baseMoneda = moneda.replace('_BCV', '');
+                referencia = 'BCV';
+            }
+            document.getElementById('edit_tasa_moneda').required = true;
+        } else {
+            document.getElementById('tasaIdFields').style.display = 'none';
+            document.getElementById('edit_tasa_moneda').required = false;
+        }
+        
+        document.getElementById('edit_tasa_moneda').value = baseMoneda;
+        document.getElementById('edit_tasa_referencia').value = referencia;
+        
         document.getElementById('tasa_real').value = parseFloat(tasa_real.replace(',', '.'));
         document.getElementById('tasa_margen').value = parseFloat(tasa_margen.replace(',', '.'));
         
@@ -664,6 +756,39 @@
 
     function closeTasaModal() {
         document.getElementById('tasaModal').style.display = 'none';
+    }
+
+    // Lógica Modal Crear Tasa
+    function openTasaCreateModal() {
+        document.getElementById('tasaCreateModal').style.display = 'flex';
+    }
+    
+    function closeTasaCreateModal() {
+        document.getElementById('tasaCreateModal').style.display = 'none';
+    }
+    
+    function saveTasaCreateAjax() {
+        const form = document.getElementById('form-create-tasa');
+        const url = "{% url 'inventario:tasa_create' %}";
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(response => {
+            if (response.success) {
+                closeTasaCreateModal();
+                location.reload();
+            } else {
+                alert("Error al crear la tasa: " + JSON.stringify(response.errors));
+            }
+        })
+        .catch(err => console.error(err));
     }
 
     // Modal de Confirmación Genérico

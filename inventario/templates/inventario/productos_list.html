@@ -172,7 +172,11 @@
                         <label>Moneda Compra</label>
                         <select name="moneda_compra" class="form-select">
                             <option value="USD">Dólares</option>
-                            <option value="COP">Pesos Colombianos</option>
+                            {% for t in tasas %}
+                                {% if t.moneda != 'BCV' and t.moneda != 'USDT_VES' %}
+                                <option value="{{ t.moneda }}">{{ t.moneda }}</option>
+                                {% endif %}
+                            {% endfor %}
                         </select>
                     </div>
                     

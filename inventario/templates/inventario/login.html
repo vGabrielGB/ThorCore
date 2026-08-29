@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrothor | Iniciar Sesión</title>
+    {% load static %}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'inventario/css/styles.css' %}">
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100vw;
+            padding: 20px;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            text-align: center;
+        }
+        .auth-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 24px;
+            border: 3px solid var(--accent-color);
+            padding: 4px;
+            background: white;
+        }
+        .auth-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .auth-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-size: 0.95rem;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+            background: rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        [data-theme="light"] .form-input {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="glass-panel auth-card">
+            <img src="{% static 'inventario/img/logo.jpg' %}" alt="Logo Agrothor" class="auth-logo">
+            <h1 class="auth-title">Bienvenido a Agrothor</h1>
+            <p class="auth-subtitle">Ingresa tus credenciales para continuar</p>
+            
+            {% if messages %}
+                <div style="margin-bottom: 20px; text-align: left;">
+                    {% for message in messages %}
+                        <div style="padding: 12px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.9rem;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="username">Usuario</label>
+                    <input type="text" id="username" name="username" class="form-input" required autocomplete="username" placeholder="ej: cajero1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" class="form-input" required autocomplete="current-password" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-submit">Ingresar</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Check local storage for theme
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+    </script>
+</body>
+</html>

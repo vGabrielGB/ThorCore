@@ -31,6 +31,7 @@
                 </button>
             </div>
             <nav class="sidebar-nav">
+                {% if perms.inventario.view_categoria %}
                 <!-- 1. Dashboard -->
                 <a href="{% url 'inventario:dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="icon">
@@ -48,6 +49,7 @@
                         </svg>
                     </span> Productos al Detal
                 </a>
+                {% endif %}
 
                 <!-- 3. Apertura al detal -->
                 <a href="{% url 'inventario:ventas_list' %}" class="nav-item {% if 'ventas_list' in request.resolver_match.url_name %}active{% endif %}">
@@ -58,6 +60,7 @@
                     </span> Apertura Detal
                 </a>
 
+                {% if perms.inventario.view_categoria %}
                 <!-- 4. Productos al mayor -->
                 <a href="{% url 'inventario:productos_mayor_list' %}" class="nav-item {% if 'productos_mayor' in request.resolver_match.url_name %}active{% endif %}">
                     <span class="icon">
@@ -66,6 +69,7 @@
                         </svg>
                     </span> Productos al Mayor
                 </a>
+                {% endif %}
 
                 <!-- 5. Ventas al mayor -->
                 <a href="{% url 'inventario:ventas_mayor_list' %}" class="nav-item {% if 'ventas_mayor' in request.resolver_match.url_name %}active{% endif %}">
@@ -85,6 +89,7 @@
                     </span> Créditos
                 </a>
 
+                {% if perms.inventario.view_categoria %}
                 <!-- 6. Estadisticas -->
                 <a href="{% url 'inventario:estadisticas' %}" class="nav-item {% if request.resolver_match.url_name == 'estadisticas' %}active{% endif %}">
                     <span class="icon">
@@ -120,8 +125,10 @@
                         </svg>
                     </span> Kardex (Historial)
                 </a>
+                {% endif %}
 
                 <!-- 9. Configuracion avanzada -->
+                {% if request.user.is_superuser %}
                 <a href="/admin/" class="nav-item">
                     <span class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -130,10 +137,21 @@
                         </svg>
                     </span> Configuración Avanzada
                 </a>
+                {% endif %}
             </nav>
         </aside>
         <!-- Main Content -->
         <main class="main-content">
+            {% if messages %}
+                <div class="messages-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" style="margin-bottom: 0;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+            
             <header class="top-header">
                 <div class="header-title">
                     <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Open Menu">
@@ -143,19 +161,14 @@
                     </button>
                     <h1 style="color: var(--text-primary); font-weight: 700; font-size: 1.5rem;">{% block header_title %}Panel de Control{% endblock %}</h1>
                 </div>
-                <div class="user-profile">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                    <div class="avatar">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                <div class="user-profile" style="display: flex; align-items: center; gap: 16px;">
+                    <span style="font-weight: 600;">{{ request.user.username }}</span>
+                    <a href="{% url 'inventario:logout' %}" style="color: var(--danger); text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                         </svg>
-                    </div>
+                        Salir
+                    </a>
                 </div>
             </header>
 

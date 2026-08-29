@@ -82,7 +82,7 @@ class Producto(models.Model):
     nombre = models.CharField(max_length=20)
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     
-    moneda_compra = models.CharField(max_length=3, choices=MONEDA_COMPRA_CHOICES)
+    moneda_compra = models.CharField(max_length=20)
     moneda_venta = models.CharField(max_length=3, choices=MONEDA_VENTA_CHOICES, default='VES')
     
     costo_base = models.DecimalField(max_digits=12, decimal_places=2)
@@ -120,10 +120,17 @@ class Producto(models.Model):
         # 1. Llevar costo a USD
         costo_usd = Decimal(str(self.costo_base))
         rates = get_cached_rates()
-        if self.moneda_compra == 'COP':
-            tasa_cop = rates.get('COP_USDT').tasa_real if 'COP_USDT' in rates else Decimal('0')
-            if tasa_cop == 0: return None
-            costo_usd = costo_usd / tasa_cop
+        if self.moneda_compra != 'USD':
+            tasa_obj = rates.get(self.moneda_compra)
+            if tasa_obj and tasa_obj.tasa_real > 0:
+                if self.moneda_compra.endswith('_USDT'):
+                    costo_usd = costo_usd / tasa_obj.tasa_real
+                elif self.moneda_compra.endswith('_BCV'):
+                    costo_bcv = costo_usd / tasa_obj.tasa_real
+                    tasa_bcv_usd = rates.get('BCV').tasa_real if 'BCV' in rates else Decimal('1')
+                    costo_usd = costo_bcv / tasa_bcv_usd if tasa_bcv_usd > 0 else Decimal('0')
+            else:
+                return None
 
         # 2. Determinar la ganancia a aplicar (solo detal)
         if self.usar_ganancia_categoria:
@@ -161,7 +168,7 @@ class Producto(models.Model):
                 
             elif self.moneda_venta == 'VES':
                 tasa = Decimal('0')
-                if self.moneda_compra == 'COP':
+                if self.moneda_compra != 'USD' and 'USDT' in self.moneda_compra:
                     tasa = rates.get('USDT_VES').tasa_margen if 'USDT_VES' in rates else Decimal('0')
                 else:
                     tasa = rates.get('BCV').tasa_margen if 'BCV' in rates else Decimal('0')
@@ -209,11 +216,18 @@ class Producto(models.Model):
     @property
     def costo_base_usd(self):
         costo = Decimal(str(self.costo_base))
-        if self.moneda_compra == 'COP':
+        if self.moneda_compra != 'USD':
             try:
                 rates = get_cached_rates()
-                tasa = rates.get('COP_USDT').tasa_margen if 'COP_USDT' in rates else Decimal('0')
-                if tasa > 0: return round(costo / tasa, 2)
+                tasa_obj = rates.get(self.moneda_compra)
+                if tasa_obj and tasa_obj.tasa_margen > 0:
+                    if self.moneda_compra.endswith('_USDT'):
+                        return round(costo / tasa_obj.tasa_margen, 2)
+                    elif self.moneda_compra.endswith('_BCV'):
+                        costo_bcv = costo / tasa_obj.tasa_margen
+                        tasa_bcv_usd = rates.get('BCV').tasa_margen if 'BCV' in rates else Decimal('1')
+                        if tasa_bcv_usd > 0:
+                            return round(costo_bcv / tasa_bcv_usd, 2)
             except: pass
         return costo
 

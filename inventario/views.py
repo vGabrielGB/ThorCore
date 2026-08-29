@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from .decorators import cajero_gerente_required, gerente_required, superuser_required
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db import transaction
@@ -15,7 +16,11 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 import math
 
+@cajero_gerente_required
 def dashboard_view(request):
+    if request.user.groups.filter(name='Cajero').exists():
+        return redirect('inventario:ventas_list')
+        
     today = timezone.now()
     from datetime import timedelta
     ayer = (today - timedelta(days=1)).date()
@@ -68,6 +73,7 @@ def dashboard_view(request):
     }
     return render(request, 'inventario/dashboard.html', context)
 
+@gerente_required
 def producto_list_view(request):
     from django.core.paginator import Paginator
     productos = Producto.objects.select_related('categoria').all().order_by('nombre')
@@ -85,11 +91,14 @@ def producto_list_view(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
         
+    tasas = TasaCambio.objects.exclude(moneda__in=['BCV', 'USDT_VES'])
+    
     form = ProductoForm()
     context = {
         'page_obj': page_obj,
         'productos': page_obj.object_list,
         'categorias': categorias,
+        'tasas': tasas,
         'q': q,
         'categoria_id': categoria_id,
         'form': form,
@@ -97,6 +106,7 @@ def producto_list_view(request):
     }
     return render(request, 'inventario/productos_list.html', context)
 
+@gerente_required
 def producto_create_view(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST)
@@ -119,9 +129,11 @@ def producto_create_view(request):
             
             productos = Producto.objects.select_related('categoria').all().order_by('nombre')
             categorias = Categoria.objects.all().order_by('nombre')
+            tasas = TasaCambio.objects.exclude(moneda__in=['BCV', 'USDT_VES'])
             context = {
                 'productos': productos,
                 'categorias': categorias,
+                'tasas': tasas,
                 'q': '',
                 'categoria_id': '',
                 'form': form,
@@ -130,6 +142,7 @@ def producto_create_view(request):
             return render(request, 'inventario/productos_list.html', context)
     return redirect('inventario:producto_list')
 
+@gerente_required
 def producto_update_mayor_view(request, pk):
     if request.method == 'POST':
         producto = get_object_or_404(Producto, pk=pk)
@@ -164,6 +177,7 @@ def producto_update_mayor_view(request, pk):
         return JsonResponse({'success': True})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
+@gerente_required
 def producto_update_stock_view(request, pk):
     if request.method == 'POST':
         producto = get_object_or_404(Producto, pk=pk)
@@ -187,6 +201,7 @@ def producto_update_stock_view(request, pk):
             return JsonResponse({'success': False, 'error': 'Cantidades inválidas'})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
+@gerente_required
 def producto_edit_view(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     
@@ -235,6 +250,7 @@ def producto_edit_view(request, pk):
         form = ProductoForm(instance=producto)
     return render(request, 'inventario/formulario_generico.html', {'form': form, 'title': 'Editar Producto'})
 
+@gerente_required
 def producto_delete_view(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     nombre = producto.nombre
@@ -242,6 +258,7 @@ def producto_delete_view(request, pk):
     messages.success(request, f'Producto "{nombre}" eliminado con éxito.')
     return redirect('inventario:producto_list')
 
+@cajero_gerente_required
 def ventas_list_view(request):
     from django.core.paginator import Paginator
     ventas = VentaDetal.objects.all().order_by('-fecha')
@@ -256,6 +273,7 @@ def ventas_list_view(request):
         'productos': productos
     })
 
+@gerente_required
 def productos_mayor_list_view(request):
     from django.core.paginator import Paginator
     productos = Producto.objects.filter(se_vende_al_mayor=True).select_related('categoria').order_by('nombre')
@@ -282,6 +300,7 @@ def productos_mayor_list_view(request):
         'cat_id': cat_id
     })
 
+@cajero_gerente_required
 def ventas_mayor_list_view(request):
     from django.core.paginator import Paginator
     ventas = VentaMayor.objects.all().order_by('-fecha')
@@ -298,6 +317,7 @@ def ventas_mayor_list_view(request):
     })
 
 import json
+@cajero_gerente_required
 def venta_mayor_create_view(request):
     if request.method == 'POST':
         try:
@@ -369,6 +389,7 @@ def venta_mayor_create_view(request):
     productos = Producto.objects.filter(se_vende_al_mayor=True, cantidad_en_almacen__gt=0).order_by('nombre')
     return render(request, 'inventario/venta_mayor_create.html', {'productos': productos})
 
+@cajero_gerente_required
 def creditos_list_view(request):
     from django.db.models import Sum
     creditos = VentaMayor.objects.filter(es_credito=True, pagado=False).order_by('-fecha')
@@ -389,6 +410,7 @@ def creditos_list_view(request):
             
     return render(request, 'inventario/creditos_list.html', {'creditos_data': creditos_data})
 
+@cajero_gerente_required
 def abono_credito_view(request, pk):
     if request.method == 'POST':
         from django.db.models import Sum
@@ -417,6 +439,7 @@ def abono_credito_view(request, pk):
                 
     return redirect('inventario:creditos_list')
 
+@cajero_gerente_required
 def venta_mayor_export_pdf_view(request, pk):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
@@ -525,6 +548,7 @@ def venta_mayor_export_pdf_view(request, pk):
     
     return response
 
+@cajero_gerente_required
 def venta_detal_create_view(request):
     if request.method == 'POST':
         try:
@@ -593,47 +617,115 @@ def venta_detal_create_view(request):
     productos = Producto.objects.filter(cantidad_en_tienda__gt=0).order_by('nombre')
     return render(request, 'inventario/venta_detal_create.html', {'productos': productos})
 
+@gerente_required
 def tasas_list_view(request):
     tasas = TasaCambio.objects.all()
     return render(request, 'inventario/tasas_list.html', {'tasas': tasas})
 
+@gerente_required
 def tasa_edit_view(request, pk):
     tasa = get_object_or_404(TasaCambio, pk=pk)
     config = ConfiguracionNegocio.objects.first()
     
     if request.method == 'POST':
-        form = TasaCambioForm(request.POST, instance=tasa)
-        if form.is_valid():
-            form.save()
+        # Read fields directly
+        new_moneda = request.POST.get('moneda', '').strip()
+        new_referencia = request.POST.get('referencia', '').strip()
+        tasa_real_str = request.POST.get('tasa_real')
+        tasa_margen_str = request.POST.get('tasa_margen')
+        
+        if not tasa_real_str or not tasa_margen_str:
+            return JsonResponse({'success': False, 'errors': 'Faltan campos'})
             
-            if tasa.moneda == 'BCV' and config:
-                config.aumento_bcv_activo = request.POST.get('aumento_bcv_activo') == 'true'
-                config.tipo_aumento_bcv = request.POST.get('tipo_aumento_bcv', config.tipo_aumento_bcv)
-                config.valor_aumento_bcv = request.POST.get('valor_aumento_bcv', config.valor_aumento_bcv)
-                config.save()
-            elif tasa.moneda == 'USDT_VES' and config:
-                config.aumento_usdt_activo = request.POST.get('aumento_usdt_activo') == 'true'
-                config.tipo_aumento_usdt = request.POST.get('tipo_aumento_usdt', config.tipo_aumento_usdt)
-                config.valor_aumento_usdt = request.POST.get('valor_aumento_usdt', config.valor_aumento_usdt)
-                config.save()
-                
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': True})
-            messages.success(request, 'Tasa actualizada correctamente.')
-            return redirect('inventario:centro_control')
+        tasa_real = Decimal(tasa_real_str.replace(',', '.'))
+        tasa_margen = Decimal(tasa_margen_str.replace(',', '.'))
+        
+        # Build the new ID if not BCV or USDT_VES
+        if tasa.moneda in ['BCV', 'USDT_VES']:
+            new_moneda_id = tasa.moneda
         else:
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'errors': form.errors})
-    else:
-        form = TasaCambioForm(instance=tasa)
+            if new_referencia:
+                new_moneda_id = f"{new_moneda}_{new_referencia}"
+            else:
+                new_moneda_id = new_moneda
+                
+        # Check if ID changed
+        if new_moneda_id != tasa.moneda:
+            # Check if new ID already exists
+            if TasaCambio.objects.filter(moneda=new_moneda_id).exists():
+                return JsonResponse({'success': False, 'errors': 'Ya existe una tasa con ese nombre'})
+            
+            # Create new, update references, delete old
+            nueva_tasa = TasaCambio.objects.create(
+                moneda=new_moneda_id,
+                tasa_real=tasa_real,
+                tasa_margen=tasa_margen
+            )
+            Producto.objects.filter(moneda_compra=tasa.moneda).update(moneda_compra=new_moneda_id)
+            tasa.delete()
+            tasa = nueva_tasa
+        else:
+            tasa.tasa_real = tasa_real
+            tasa.tasa_margen = tasa_margen
+            tasa.save()
+            
+        if tasa.moneda == 'BCV' and config:
+            config.aumento_bcv_activo = request.POST.get('aumento_bcv_activo') == 'true'
+            config.tipo_aumento_bcv = request.POST.get('tipo_aumento_bcv', config.tipo_aumento_bcv)
+            config.valor_aumento_bcv = request.POST.get('valor_aumento_bcv', config.valor_aumento_bcv)
+            config.save()
+        elif tasa.moneda == 'USDT_VES' and config:
+            config.aumento_usdt_activo = request.POST.get('aumento_usdt_activo') == 'true'
+            config.tipo_aumento_usdt = request.POST.get('tipo_aumento_usdt', config.tipo_aumento_usdt)
+            config.valor_aumento_usdt = request.POST.get('valor_aumento_usdt', config.valor_aumento_usdt)
+            config.save()
+            
+        return JsonResponse({'success': True})
     
-    return render(request, 'inventario/formulario_generico.html', {
-        'form': form, 
-        'title': f'Editar Tasa {tasa.moneda}',
-        'tasa_obj': tasa,
-        'config': config
-    })
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
 
+@gerente_required
+def tasa_delete_view(request, pk):
+    if request.method == 'POST':
+        tasa = get_object_or_404(TasaCambio, pk=pk)
+        if tasa.moneda not in ['BCV', 'USDT_VES']:
+            # Fallback products using this rate to USD
+            Producto.objects.filter(moneda_compra=tasa.moneda).update(moneda_compra='USD')
+            tasa.delete()
+            messages.success(request, 'Tasa eliminada correctamente.')
+        else:
+            messages.error(request, 'No se pueden eliminar las tasas principales del sistema.')
+    return redirect('inventario:centro_control')
+
+@gerente_required
+def tasa_create_view(request):
+    if request.method == 'POST':
+        moneda = request.POST.get('moneda', '').strip()
+        referencia = request.POST.get('referencia', '').strip()
+        tasa_real = request.POST.get('tasa_real')
+        tasa_margen = request.POST.get('tasa_margen')
+        
+        if not moneda or not tasa_real or not tasa_margen:
+            return JsonResponse({'success': False, 'errors': 'Faltan campos requeridos'})
+            
+        if referencia:
+            moneda_id = f"{moneda}_{referencia}"
+        else:
+            moneda_id = moneda
+            
+        try:
+            TasaCambio.objects.create(
+                moneda=moneda_id,
+                tasa_real=Decimal(tasa_real.replace(',', '.')),
+                tasa_margen=Decimal(tasa_margen.replace(',', '.'))
+            )
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'errors': str(e)})
+            
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+@gerente_required
 def scrape_bcv_view(request):
     from .utils import scrape_bcv_rate, scrape_binance_usdt
     rate, err = scrape_bcv_rate()
@@ -715,6 +807,7 @@ def scrape_bcv_view(request):
 
     return redirect('inventario:centro_control')
 
+@gerente_required
 def kardex_list_view(request):
     from django.core.paginator import Paginator
     from .models import MovimientoInventario
@@ -755,10 +848,12 @@ def kardex_list_view(request):
         'fecha_fin': fecha_fin
     })
 
+@gerente_required
 def categoria_list_view(request):
     categorias = Categoria.objects.all().order_by('nombre')
     return render(request, 'inventario/categorias_list.html', {'categorias': categorias})
 
+@gerente_required
 def centro_control_view(request):
     categorias = Categoria.objects.all().order_by('nombre')
     tasas = TasaCambio.objects.all()
@@ -769,6 +864,7 @@ def centro_control_view(request):
         
     return render(request, 'inventario/centro_control.html', {'categorias': categorias, 'tasas': tasas, 'config': config, 'metodos_pago': metodos_pago})
 
+@gerente_required
 def update_configuracion_view(request):
     if request.method == 'POST':
         config = ConfiguracionNegocio.objects.first()
@@ -808,6 +904,7 @@ def update_configuracion_view(request):
         messages.success(request, 'Configuración de redondeo actualizada con éxito.')
     return redirect('inventario:centro_control')
 
+@gerente_required
 def categoria_create_view(request):
     if request.method == 'POST':
         form = CategoriaForm(request.POST)
@@ -829,6 +926,7 @@ def categoria_create_view(request):
         'back_url': 'inventario:centro_control'
     })
 
+@gerente_required
 def categoria_edit_view(request, pk):
     categoria = get_object_or_404(Categoria, pk=pk)
     if request.method == 'POST':
@@ -851,6 +949,7 @@ def categoria_edit_view(request, pk):
         'back_url': 'inventario:centro_control'
     })
 
+@gerente_required
 def categoria_delete_view(request, pk):
     categoria = get_object_or_404(Categoria, pk=pk)
     if request.method == 'POST':
@@ -859,6 +958,7 @@ def categoria_delete_view(request, pk):
         return redirect('inventario:centro_control')
     return redirect('inventario:centro_control')
 
+@gerente_required
 def producto_export_pdf_view(request):
     productos = Producto.objects.select_related('categoria').all().order_by('nombre')
     q = request.GET.get('q', '')
@@ -969,6 +1069,7 @@ def producto_export_pdf_view(request):
     
     return response
 
+@gerente_required
 def producto_export_pdf_mayor_view(request):
     productos = Producto.objects.filter(se_vende_al_mayor=True).select_related('categoria').order_by('nombre')
     
@@ -1064,6 +1165,7 @@ def producto_export_pdf_mayor_view(request):
 from django.db.models import DecimalField
 from datetime import timedelta
 
+@gerente_required
 def dashboard_estadisticas_view(request):
     from django.db.models import Sum
     from datetime import datetime, timedelta
@@ -1246,6 +1348,7 @@ def dashboard_estadisticas_view(request):
     return render(request, 'inventario/estadisticas.html', context)
 
 
+@gerente_required
 def metodo_pago_create_view(request):
     if request.method == 'POST':
         form = MetodoPagoForm(request.POST)
@@ -1260,6 +1363,7 @@ def metodo_pago_create_view(request):
                 return JsonResponse({'success': False, 'errors': form.errors})
     return redirect('inventario:centro_control')
 
+@gerente_required
 def metodo_pago_edit_view(request, pk):
     metodo = get_object_or_404(MetodoPago, pk=pk)
     if request.method == 'POST':
@@ -1275,6 +1379,7 @@ def metodo_pago_edit_view(request, pk):
                 return JsonResponse({'success': False, 'errors': form.errors})
     return redirect('inventario:centro_control')
 
+@gerente_required
 def metodo_pago_delete_view(request, pk):
     metodo = get_object_or_404(MetodoPago, pk=pk)
     if request.method == 'POST':
@@ -1285,6 +1390,7 @@ def metodo_pago_delete_view(request, pk):
             messages.error(request, 'No se puede eliminar porque está en uso.')
     return redirect('inventario:centro_control')
 
+@cajero_gerente_required
 def cierre_list_view(request):
     from django.core.paginator import Paginator
     cierres = CierreDiario.objects.all().order_by('-fecha')
@@ -1303,6 +1409,7 @@ def cierre_list_view(request):
     return render(request, 'inventario/cierre_list.html', context)
 
 import json
+@cajero_gerente_required
 def cierre_create_view(request):
     if request.method == 'POST':
         try:
