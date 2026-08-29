@@ -7,7 +7,6 @@ app_name = 'inventario'
 urlpatterns = [
     # Auth
     path('login/', auth_views.custom_login_view, name='login'),
-    path('verificar-2fa/', auth_views.verify_2fa_view, name='verify_2fa'),
     path('logout/', auth_views.custom_logout_view, name='logout'),
     
     path('', views.dashboard_view, name='dashboard'),
