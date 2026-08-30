@@ -400,7 +400,7 @@
                 <div id="tasaIdFields" style="display:none;">
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Abreviación de la Moneda</label>
-                        <input type="text" id="edit_tasa_moneda" name="moneda" class="form-control" style="width:100%;">
+                        <input type="text" id="edit_tasa_moneda" name="moneda" class="form-control" style="width:100%; text-transform: uppercase;" minlength="3" maxlength="4" oninput="this.value = this.value.toUpperCase()">
                     </div>
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Moneda de Referencia</label>
@@ -410,6 +410,7 @@
                             <option value="BCV">BCV</option>
                         </select>
                     </div>
+                    
                 </div>
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Real</label>
@@ -464,7 +465,7 @@
                 {% csrf_token %}
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Abreviación de la Moneda (Ej. COP)</label>
-                    <input type="text" id="create_tasa_moneda" name="moneda" class="form-control" style="width:100%;" required>
+                    <input type="text" id="create_tasa_moneda" name="moneda" class="form-control" style="width:100%; text-transform: uppercase;" required minlength="3" maxlength="4" oninput="this.value = this.value.toUpperCase()">
                 </div>
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Moneda de Referencia</label>
@@ -474,6 +475,7 @@
                         <option value="BCV">BCV</option>
                     </select>
                 </div>
+                
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="display:block; margin-bottom:8px; color:var(--text-secondary);">Tasa Real</label>
                     <input type="number" step="0.000001" id="create_tasa_real" name="tasa_real" class="form-control" style="width:100%;" required>

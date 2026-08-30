@@ -630,8 +630,7 @@ def tasa_edit_view(request, pk):
     if request.method == 'POST':
         # Read fields directly
         new_moneda = request.POST.get('moneda', '').strip()
-        new_referencia = request.POST.get('referencia', '').strip()
-        tasa_real_str = request.POST.get('tasa_real')
+        new_tasa_real_str = request.POST.get('tasa_real')
         tasa_margen_str = request.POST.get('tasa_margen')
         
         if not tasa_real_str or not tasa_margen_str:
@@ -645,9 +644,9 @@ def tasa_edit_view(request, pk):
             new_moneda_id = tasa.moneda
         else:
             if new_referencia:
-                new_moneda_id = f"{new_moneda}_{new_referencia}"
+                new_moneda_id = f"{new_moneda.upper()}_{new_referencia}"
             else:
-                new_moneda_id = new_moneda
+                new_moneda_id = new_moneda.upper()
                 
         # Check if ID changed
         if new_moneda_id != tasa.moneda:
@@ -709,9 +708,9 @@ def tasa_create_view(request):
             return JsonResponse({'success': False, 'errors': 'Faltan campos requeridos'})
             
         if referencia:
-            moneda_id = f"{moneda}_{referencia}"
+            moneda_id = f"{moneda.upper()}_{referencia}"
         else:
-            moneda_id = moneda
+            moneda_id = moneda.upper()
             
         try:
             TasaCambio.objects.create(

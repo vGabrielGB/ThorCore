@@ -50,7 +50,7 @@
                     <td title="{{ p.nombre }}"><strong>{{ p.nombre|truncatechars:20 }}</strong></td>
                     <td>{{ p.categoria.nombre }}</td>
                     <td>
-                        <button onclick="openStockModal({{ p.id }}, {{ p.cantidad_en_tienda }}, {{ p.cantidad_en_almacen }})" class="btn" style="background: none; border: none; cursor: pointer; padding: 0;">
+                        <button onclick="openStockModal({{ p.id }}, {{ p.cantidad_en_tienda }}, {{ p.cantidad_en_almacen }})" class="btn" style="background: none; border: none; cursor: pointer; padding: 0; display: inline-flex; align-items: center; white-space: nowrap;">
                             <span class="stock-badge {% if p.cantidad_en_tienda == 0 %}danger{% elif p.cantidad_en_tienda <= 2 %}warning{% else %}success{% endif %}">{{ p.cantidad_en_tienda|floatformat:0 }}</span> 
                             <span style="color: var(--text-primary); font-weight: bold; margin-left: 4px;">/ {{ p.cantidad_en_almacen|floatformat:0 }}</span>
                         </button>
@@ -160,7 +160,7 @@
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
                         <label>Nombre</label>
-                        <input type="text" name="nombre" class="form-control" required>
+                        <input type="text" name="nombre" class="form-control" maxlength="20" required>
                     </div>
                     
                     <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">

@@ -16,7 +16,7 @@ class MetodoPagoForm(forms.ModelForm):
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        exclude = ['se_vende_al_mayor', 'precio_venta_mayor_usd_efectivo', 'precio_venta_mayor_usd_bcv']
+        fields = ['nombre', 'categoria', 'moneda_compra', 'moneda_venta', 'costo_base', 'tipo_medida', 'medida_cantidad_total', 'medida_cantidad_porcion', 'cantidad_en_almacen', 'cantidad_en_tienda', 'usar_ganancia_categoria', 'tipo_ganancia_personalizada', 'valor_ganancia_personalizada']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'categoria': forms.Select(attrs={'class': 'form-control'}),
@@ -29,8 +29,8 @@ class ProductoForm(forms.ModelForm):
             'usar_ganancia_categoria': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'tipo_ganancia_personalizada': forms.Select(attrs={'class': 'form-control'}),
             'valor_ganancia_personalizada': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'cantidad_en_almacen': forms.NumberInput(attrs={'class': 'form-control'}),
-            'cantidad_en_tienda': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cantidad_en_almacen': forms.NumberInput(attrs={'class': 'form-control', 'step': '1', 'min': '0'}),
+            'cantidad_en_tienda': forms.NumberInput(attrs={'class': 'form-control', 'step': '1', 'min': '0'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -40,7 +40,7 @@ class ProductoForm(forms.ModelForm):
             choices = [('USD', 'Dólares ($)')]
             for t in tasas:
                 choices.append((t.moneda, t.moneda))
-            self.fields['moneda_compra'].choices = choices
+            self.fields['moneda_compra'] = forms.ChoiceField(choices=choices, widget=forms.Select(attrs={'class': 'form-control'}))
         except Exception:
             pass
 
