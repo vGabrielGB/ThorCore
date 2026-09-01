@@ -485,7 +485,7 @@ def venta_mayor_export_pdf_view(request, pk):
         logo = Image(logo_path, width=100, height=100)
         header_table_data.append([logo, factura_info])
     else:
-        header_table_data.append([Paragraph("Agrothor", title_style), factura_info])
+        header_table_data.append([Paragraph("ThorCore", title_style), factura_info])
         
     header_table = Table(header_table_data, colWidths=[270, 270])
     header_table.setStyle(TableStyle([
@@ -542,7 +542,7 @@ def venta_mayor_export_pdf_view(request, pk):
     
     # Pie de página
     elements.append(Spacer(1, 40))
-    elements.append(Paragraph("¡Gracias por su compra en Agrothor!", ParagraphStyle(name='Footer', alignment=1, textColor=colors.HexColor('#a4b0be'))))
+    elements.append(Paragraph("¡Gracias por su compra en ThorCore!", ParagraphStyle(name='Footer', alignment=1, textColor=colors.HexColor('#a4b0be'))))
     
     doc.build(elements)
     
@@ -1009,7 +1009,7 @@ def producto_export_pdf_view(request):
         logo = Image(logo_path, width=80, height=80)
         header_table_data.append([logo, header_info])
     else:
-        header_table_data.append([Paragraph("Agrothor", title_style), header_info])
+        header_table_data.append([Paragraph("ThorCore", title_style), header_info])
         
     header_table = Table(header_table_data, colWidths=[270, 270])
     header_table.setStyle(TableStyle([
@@ -1105,7 +1105,7 @@ def producto_export_pdf_mayor_view(request):
         logo = Image(logo_path, width=80, height=80)
         header_table_data.append([logo, header_info])
     else:
-        header_table_data.append([Paragraph("Agrothor", title_style), header_info])
+        header_table_data.append([Paragraph("ThorCore", title_style), header_info])
         
     header_table = Table(header_table_data, colWidths=[270, 270])
     header_table.setStyle(TableStyle([

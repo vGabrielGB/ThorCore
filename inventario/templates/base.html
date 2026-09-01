@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agrothor | {% block page_title %}Dashboard{% endblock %}</title>
+    <title>ThorCore | {% block page_title %}Dashboard{% endblock %}</title>
     {% load static auth_extras %}
-    <link rel="icon" type="image/jpeg" href="{% static 'inventario/img/logo.jpg' %}">
+    <link rel="icon" type="image/png" href="{% static 'inventario/img/logo.png' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'inventario/css/styles.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -18,8 +18,8 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <img src="{% static 'inventario/img/logo.jpg' %}" alt="Logo Agrothor">
-                    <h2>Agrothor</h2>
+                    <img src="{% static 'inventario/img/logo.png' %}" alt="Logo ThorCore">
+                    <h2>ThorCore</h2>
                 </div>
                 <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
                     <!-- Sun icon (shown in dark mode) -->
@@ -327,7 +327,7 @@
         // Override default alert
         window.alert = function (message) {
             Swal.fire({
-                title: 'Agrothor dice:',
+                title: 'ThorCore dice:',
                 text: message,
                 icon: 'info',
                 confirmButtonColor: '#6c5ce7',
@@ -339,7 +339,7 @@
         window.confirmAction = function (event, url, message) {
             event.preventDefault();
             Swal.fire({
-                title: 'Agrothor dice:',
+                title: 'ThorCore dice:',
                 text: message,
                 icon: 'warning',
                 showCancelButton: true,

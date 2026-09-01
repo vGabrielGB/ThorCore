@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ft$(x6lwn$7&+!@c=$xh9n!x-jsf^dymwubmw!vz!tvyrc!@o#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['agrothor.pythonanywhere.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['ThorCore.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -116,7 +116,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = '/home/agrothor/ThorCore/staticfiles'
+STATIC_ROOT = '/home/ThorCore/ThorCore/staticfiles'
 
 
 # Email
