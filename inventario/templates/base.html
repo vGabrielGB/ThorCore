@@ -10,6 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'inventario/css/styles.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .sidebar-logo-img {
+            height: 40px;
+            width: auto;
+            transition: filter 0.3s ease;
+        }
+        [data-theme="dark"] .sidebar-logo-img {
+            filter: invert(1);
+        }
+    </style>
 </head>
 
 <body>
@@ -18,7 +28,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <img src="{% static 'inventario/img/logo.png' %}" alt="Logo ThorCore">
+                    <img src="{% static 'inventario/img/logo.png' %}" alt="Logo ThorCore" class="sidebar-logo-img">
                     <h2>ThorCore</h2>
                 </div>
                 <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
@@ -307,8 +317,37 @@
                 iconSun.style.display = 'none';
                 iconMoon.style.display = 'block';
             }
+            updateFavicon(theme);
         }
 
+        function updateFavicon(theme) {
+            const favicon = document.querySelector('link[rel="icon"]');
+            if (!favicon) return;
+            if (!window.originalFaviconUrl) {
+                window.originalFaviconUrl = favicon.getAttribute('href');
+            }
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = window.originalFaviconUrl;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                if (theme === 'dark') {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 255 - data[i];       // r
+                        data[i+1] = 255 - data[i+1];   // g
+                        data[i+2] = 255 - data[i+2];   // b
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                }
+                favicon.href = canvas.toDataURL('image/png');
+            };
+        }
 
         // Mobile Menu Toggle
         mobileMenuBtn.addEventListener('click', () => {
