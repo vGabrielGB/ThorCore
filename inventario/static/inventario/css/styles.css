@@ -1006,3 +1006,19 @@ input:checked + .slider:before {
 }
 
 [data-theme="dark"] .sidebar-logo-img { filter: invert(1); }
+
+/* Modals responsive fixes for mobile */
+.modal-overlay > div,
+.modal-overlay .card,
+.modal-backdrop .modal-content {
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    max-width: 95vw !important;
+}
+
+@media (max-width: 768px) {
+    .modal-overlay, .modal-backdrop {
+        align-items: flex-start !important;
+        padding-top: 5vh !important;
+    }
+}

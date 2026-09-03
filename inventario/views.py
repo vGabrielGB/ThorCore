@@ -630,7 +630,8 @@ def tasa_edit_view(request, pk):
     if request.method == 'POST':
         # Read fields directly
         new_moneda = request.POST.get('moneda', '').strip()
-        new_tasa_real_str = request.POST.get('tasa_real')
+        new_referencia = request.POST.get('referencia', '').strip()
+        tasa_real_str = request.POST.get('tasa_real')
         tasa_margen_str = request.POST.get('tasa_margen')
         
         if not tasa_real_str or not tasa_margen_str:
