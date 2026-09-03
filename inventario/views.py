@@ -1212,7 +1212,7 @@ def dashboard_estadisticas_view(request):
         end_date = today
         intervalo = 'diario'
         
-    # 1. Ventas por día (Gráfico)
+    # 1. Ventas por dia (Grafico)
     ventas_por_dia = []
     fechas = []
     
@@ -1228,6 +1228,16 @@ def dashboard_estadisticas_view(request):
     if chart_start > end_date:
         chart_start = end_date
 
+    def get_date_range(d_start, d_end=None):
+        from datetime import datetime, time
+        from django.utils import timezone
+        dt_start = timezone.make_aware(datetime.combine(d_start, time.min))
+        if d_end:
+            dt_end = timezone.make_aware(datetime.combine(d_end, time.max))
+        else:
+            dt_end = timezone.make_aware(datetime.combine(d_start, time.max))
+        return dt_start, dt_end
+
     if intervalo == 'diario':
         chart_days = (end_date - chart_start).days + 1
         if chart_days > 366:
@@ -1236,12 +1246,13 @@ def dashboard_estadisticas_view(request):
         
         for i in range(chart_days):
             fecha = chart_start + timedelta(days=i)
+            dt_start, dt_end = get_date_range(fecha)
             suma_mayor = Decimal('0.00')
             suma_detal = Decimal('0.00')
             if tipo_filtro in ['todos', 'mayor']:
-                suma_mayor = VentaMayor.objects.filter(fecha__date=fecha).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_mayor = VentaMayor.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
             if tipo_filtro in ['todos', 'detal']:
-                suma_detal = VentaDetal.objects.filter(fecha__date=fecha).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_detal = VentaDetal.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
                 
             fechas.append(fecha.strftime('%d %b'))
             ventas_por_dia.append(float(suma_mayor + suma_detal))
@@ -1250,12 +1261,13 @@ def dashboard_estadisticas_view(request):
         current_monday = chart_start - timedelta(days=chart_start.weekday())
         while current_monday <= end_date:
             next_monday = current_monday + timedelta(days=7)
+            dt_start, dt_end = get_date_range(current_monday, next_monday - timedelta(days=1))
             suma_mayor = Decimal('0.00')
             suma_detal = Decimal('0.00')
             if tipo_filtro in ['todos', 'mayor']:
-                suma_mayor = VentaMayor.objects.filter(fecha__date__gte=current_monday, fecha__date__lt=next_monday).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_mayor = VentaMayor.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
             if tipo_filtro in ['todos', 'detal']:
-                suma_detal = VentaDetal.objects.filter(fecha__date__gte=current_monday, fecha__date__lt=next_monday).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_detal = VentaDetal.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
                 
             fechas.append(f"{current_monday.strftime('%d %b')} - {(next_monday - timedelta(days=1)).strftime('%d %b')}")
             ventas_por_dia.append(float(suma_mayor + suma_detal))
@@ -1269,12 +1281,13 @@ def dashboard_estadisticas_view(request):
             else:
                 next_month_start = current_month_start.replace(month=current_month_start.month+1)
                 
+            dt_start, dt_end = get_date_range(current_month_start, next_month_start - timedelta(days=1))
             suma_mayor = Decimal('0.00')
             suma_detal = Decimal('0.00')
             if tipo_filtro in ['todos', 'mayor']:
-                suma_mayor = VentaMayor.objects.filter(fecha__date__gte=current_month_start, fecha__date__lt=next_month_start).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_mayor = VentaMayor.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
             if tipo_filtro in ['todos', 'detal']:
-                suma_detal = VentaDetal.objects.filter(fecha__date__gte=current_month_start, fecha__date__lt=next_month_start).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_detal = VentaDetal.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
                 
             fechas.append(current_month_start.strftime('%b %Y'))
             ventas_por_dia.append(float(suma_mayor + suma_detal))
@@ -1283,12 +1296,15 @@ def dashboard_estadisticas_view(request):
     elif intervalo == 'anual':
         current_year = chart_start.year
         while current_year <= end_date.year:
+            year_start = chart_start.replace(year=current_year, month=1, day=1)
+            year_end = chart_start.replace(year=current_year, month=12, day=31)
+            dt_start, dt_end = get_date_range(year_start, year_end)
             suma_mayor = Decimal('0.00')
             suma_detal = Decimal('0.00')
             if tipo_filtro in ['todos', 'mayor']:
-                suma_mayor = VentaMayor.objects.filter(fecha__date__year=current_year).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_mayor = VentaMayor.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
             if tipo_filtro in ['todos', 'detal']:
-                suma_detal = VentaDetal.objects.filter(fecha__date__year=current_year).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+                suma_detal = VentaDetal.objects.filter(fecha__range=(dt_start, dt_end)).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
                 
             fechas.append(str(current_year))
             ventas_por_dia.append(float(suma_mayor + suma_detal))
@@ -1300,8 +1316,9 @@ def dashboard_estadisticas_view(request):
     cierres_q = CierreDiario.objects.all()
     
     if start_date:
-        detalles_mayor = detalles_mayor.filter(venta__fecha__date__gte=start_date, venta__fecha__date__lte=end_date)
-        detalles_detal = detalles_detal.filter(venta__fecha__date__gte=start_date, venta__fecha__date__lte=end_date)
+        dt_start, dt_end = get_date_range(start_date, end_date)
+        detalles_mayor = detalles_mayor.filter(venta__fecha__range=(dt_start, dt_end))
+        detalles_detal = detalles_detal.filter(venta__fecha__range=(dt_start, dt_end))
         cierres_q = cierres_q.filter(fecha__gte=start_date, fecha__lte=end_date)
         
     # Top Productos

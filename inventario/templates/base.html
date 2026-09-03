@@ -198,14 +198,32 @@
         <!-- Main Content -->
         <main class="main-content">
             {% if messages %}
-            <div class="messages-container"
-                style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+            <div id="toast-container" class="messages-container"
+                style="position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none;">
                 {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}" style="margin-bottom: 0;">
-                    {{ message }}
+                <div class="alert alert-{{ message.tags }} toast-message" style="margin-bottom: 0; backdrop-filter: blur(8px); opacity: 0.95; box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: auto; font-size: 0.9rem; padding: 12px 20px; border-radius: 12px; min-width: 250px; max-width: 400px; display: flex; align-items: center; cursor: pointer; transition: opacity 0.5s ease, transform 0.5s ease;">
+                    <span>{{ message }}</span>
                 </div>
                 {% endfor %}
             </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toasts = document.querySelectorAll('.toast-message');
+                    toasts.forEach((toast, index) => {
+                        setTimeout(() => {
+                            toast.style.opacity = '0';
+                            toast.style.transform = 'translateX(30px)';
+                            setTimeout(() => toast.remove(), 500);
+                        }, 5000 + (index * 1000));
+                        
+                        toast.addEventListener('click', () => {
+                            toast.style.opacity = '0';
+                            toast.style.transform = 'translateX(30px)';
+                            setTimeout(() => toast.remove(), 500);
+                        });
+                    });
+                });
+            </script>
             {% endif %}
 
             <header class="top-header">

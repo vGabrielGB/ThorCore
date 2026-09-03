@@ -86,3 +86,56 @@ def get_cached_config():
         config = ConfiguracionNegocio.objects.first()
         cache.set('configuracion_negocio', config, 3600)
     return config
+
+def update_rates_job():
+    try:
+        from .models import TasaCambio, ConfiguracionNegocio
+        
+        # BCV
+        rate, err = scrape_bcv_rate()
+        if rate:
+            tasa_obj, _ = TasaCambio.objects.get_or_create(
+                moneda='BCV', 
+                defaults={'tasa_real': rate, 'tasa_margen': rate}
+            )
+            
+            if rate <= tasa_obj.tasa_margen:
+                tasa_obj.tasa_real = rate
+                tasa_obj.save()
+            else:
+                config = ConfiguracionNegocio.objects.first()
+                if not config:
+                    config = ConfiguracionNegocio.objects.create()
+                tasa_obj.tasa_real = rate
+                if config.aumento_bcv_activo:
+                    if config.tipo_aumento_bcv == 'PORCENTAJE':
+                        nuevo_margen = rate * (Decimal('1') + (config.valor_aumento_bcv / Decimal('100')))
+                        tasa_obj.tasa_margen = round(nuevo_margen, 2)
+                    elif config.tipo_aumento_bcv == 'FIJO':
+                        nuevo_margen = rate + config.valor_aumento_bcv
+                        tasa_obj.tasa_margen = round(nuevo_margen, 2)
+                tasa_obj.save()
+                
+        # USDT Binance
+        usdt_rate, usdt_err = scrape_binance_usdt()
+        if usdt_rate:
+            tasa_obj_usdt, _ = TasaCambio.objects.get_or_create(
+                moneda='USDT_VES', 
+                defaults={'tasa_real': usdt_rate, 'tasa_margen': usdt_rate}
+            )
+            tasa_obj_usdt.tasa_real = usdt_rate
+            config = ConfiguracionNegocio.objects.first()
+            if config and config.aumento_bcv_activo: 
+                if config.tipo_aumento_bcv == 'PORCENTAJE':
+                    nuevo_margen_usdt = usdt_rate * (Decimal('1') + (config.valor_aumento_bcv / Decimal('100')))
+                    tasa_obj_usdt.tasa_margen = round(nuevo_margen_usdt, 2)
+                elif config.tipo_aumento_bcv == 'FIJO':
+                    nuevo_margen_usdt = usdt_rate + config.valor_aumento_bcv
+                    tasa_obj_usdt.tasa_margen = round(nuevo_margen_usdt, 2)
+            else:
+                if usdt_rate > tasa_obj_usdt.tasa_margen:
+                    tasa_obj_usdt.tasa_margen = usdt_rate
+            tasa_obj_usdt.save()
+            
+    except Exception as e:
+        print(f"Error background update rates: {e}")
