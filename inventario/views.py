@@ -27,9 +27,18 @@ def dashboard_view(request):
     
     tasas = TasaCambio.objects.all()
     
-    ventas_ayer = CierreDiario.objects.filter(
-        fecha=ayer
-    ).aggregate(total=Sum('total_usd'))['total'] or Decimal('0.00')
+    ultimo_cierre = CierreDiario.objects.order_by('-fecha').first()
+    label_ultimo_cierre = "Sin Ventas"
+    ventas_ultimo_cierre = Decimal('0.00')
+    
+    if ultimo_cierre:
+        ventas_ultimo_cierre = ultimo_cierre.total_usd
+        if ultimo_cierre.fecha == today.date():
+            label_ultimo_cierre = "Ventas de Hoy"
+        elif ultimo_cierre.fecha == (today - timedelta(days=1)).date():
+            label_ultimo_cierre = "Ventas de Ayer"
+        else:
+            label_ultimo_cierre = f"Ventas del {ultimo_cierre.fecha.strftime('%d/%m/%Y')}"
     
     ventas_mes = CierreDiario.objects.filter(
         fecha__year=today.year,
@@ -66,7 +75,8 @@ def dashboard_view(request):
     
     context = {
         'tasas': tasas,
-        'ventas_ayer': ventas_ayer,
+        'label_ultimo_cierre': label_ultimo_cierre,
+        'ventas_ultimo_cierre': ventas_ultimo_cierre,
         'ventas_mes': ventas_mes,
         'ventas_recientes': ventas_recientes,
         'productos_bajo_stock': productos_bajo_stock,
@@ -1439,10 +1449,21 @@ def cierre_create_view(request):
                 
             total_usd = Decimal('0.00')
             with transaction.atomic():
-                cierre, created = CierreDiario.objects.get_or_create(
-                    fecha=fecha,
-                    defaults={'usuario': request.user if request.user.is_authenticated else None}
-                )
+                original_fecha = data.get('original_fecha')
+                cierre = None
+                if original_fecha:
+                    cierre = CierreDiario.objects.filter(fecha=original_fecha).first()
+                    if cierre:
+                        cierre.fecha = fecha
+                        cierre.save()
+                        
+                if not cierre:
+                    cierre, created = CierreDiario.objects.get_or_create(
+                        fecha=fecha,
+                        defaults={'usuario': request.user if request.user.is_authenticated else None}
+                    )
+                else:
+                    created = False
                 
                 if not created:
                     days_diff = (timezone.now().date() - cierre.fecha).days
