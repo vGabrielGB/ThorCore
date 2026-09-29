@@ -91,7 +91,7 @@
         <div class="card-body">
             <div class="form-group" style="margin-bottom: 24px;">
                 <label style="display: block; margin-bottom: 8px;">Fecha del Cierre</label>
-                <input type="date" id="tempFechaCierre" class="form-control" required style="width: 100%;">
+                <input type="date" id="tempFechaCierre" class="form-control" required style="width: 100%; cursor: pointer;" onclick="this.showPicker()">
             </div>
             <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px;">
                 <button type="button" onclick="document.getElementById('dateModal').style.display='none'" class="btn btn-secondary" style="padding: 10px 20px; border-radius: 8px; background: transparent; border: 1px solid var(--text-secondary); color: var(--text-primary);">Cancelar</button>
@@ -116,7 +116,7 @@
                 
                 <div class="form-group" style="margin-bottom: 24px;">
                     <label style="display: block; margin-bottom: 8px;">Fecha del Cierre</label>
-                    <input type="date" id="fechaCierre" class="form-control" required style="width: 100%;">
+                    <input type="date" id="fechaCierre" class="form-control" required style="width: 100%; cursor: pointer;" onclick="this.showPicker()">
                 </div>
 
                 <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
@@ -180,10 +180,19 @@
         isEditing = true;
         currentOriginalFecha = fecha;
         editingDetalles = detalles;
-        document.getElementById('dateModalTitle').innerText = 'Editar Fecha del Cierre';
-        document.getElementById('tempFechaCierre').value = fecha;
         
-        document.getElementById('dateModal').style.display = 'flex';
+        document.getElementById('cierreModalTitle').innerText = 'Editar Cierre Diario';
+        document.getElementById('fechaCierre').value = fecha;
+        document.getElementById('fechaCierre').readOnly = false;
+        
+        document.querySelectorAll('.monto-input').forEach(input => {
+            let id = input.getAttribute('data-id');
+            let detalle = detalles.find(d => d.metodo_id === id);
+            input.value = detalle ? parseFloat(detalle.monto).toFixed(2) : '';
+        });
+        
+        calcularTotal();
+        document.getElementById('cierreModal').style.display = 'flex';
     }
 
     function proceedToCierreModal() {

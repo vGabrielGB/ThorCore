@@ -21,9 +21,8 @@ def dashboard_view(request):
     if request.user.groups.filter(name='Cajero').exists():
         return redirect('inventario:ventas_list')
         
-    today = timezone.now()
+    today = timezone.localtime(timezone.now())
     from datetime import timedelta
-    ayer = (today - timedelta(days=1)).date()
     
     tasas = TasaCambio.objects.all()
     
